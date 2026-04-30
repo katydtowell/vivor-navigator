@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vivor – One-Time Search</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <style>
+    :root {
+      --color-primary:      #6366A8;
+      --color-primary-dark: #4E5190;
+      --color-accent:       #4B7DC8;
+      --color-accent-hover: #3A6AB5;
+      --color-green:        #059669;
+      --color-green-bg:     #ECFDF5;
+      --color-orange:       #D97706;
+      --color-bg:           #F4F6F9;
+      --color-surface:      #FFFFFF;
+      --color-border:       #DDE1EC;
+      --color-text:         #2D2F4A;
+      --color-text-muted:   #6B7280;
+      --color-text-light:   #9CA3AF;
+      --sidebar-width: 220px;
+      --font: 'Open Sans', sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 4px rgba(0,0,0,.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--color-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+      transition: transform .25s ease;
+    }
+    .sidebar__logo {
+      padding: 20px 20px 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar__nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 20px;
+      color: rgba(255,255,255,.72);
+      font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+      cursor: pointer; text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.10); color: #fff; }
+    .nav-item.active { background: var(--color-primary-dark); color: #fff; box-shadow: inset 3px 0 0 #fff; }
+    .nav-item .material-icons { font-size: 20px; opacity: .9; }
+    .sidebar__footer { padding: 12px 0; border-top: 1px solid rgba(255,255,255,.12); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 90; }
+
+    /* ── Main ─────────────────────────────────────────────── */
+    .main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+
+    /* ── Topbar ───────────────────────────────────────────── */
+    .topbar {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 52px; flex-shrink: 0; gap: 16px;
+    }
+    .topbar__left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .topbar__hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-muted); flex-shrink: 0; }
+    .topbar__hamburger .material-icons { font-size: 24px; }
+    .topbar__org { font-size: 13px; color: var(--color-text-muted); }
+    .topbar__org strong { color: var(--color-text); font-weight: 600; }
+    .topbar__user-wrap { position: relative; flex-shrink: 0; }
+    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user strong { color: var(--color-text); font-weight: 600; }
+    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .user-popover {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.14);
+      min-width: 160px; z-index: 400; display: none;
+    }
+    .user-popover.open { display: block; }
+    .popover-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 16px;
+      background: none; border: none; border-bottom: 1px solid var(--color-border);
+      font-family: var(--font); font-size: 13px; color: var(--color-text);
+      cursor: pointer; text-align: left; transition: background .1s;
+    }
+    .popover-item:last-child { border-bottom: none; }
+    .popover-item:hover { background: #F7F8FD; }
+    .popover-item .material-icons { font-size: 17px; color: var(--color-text-muted); }
+
+    /* ── Content ──────────────────────────────────────────── */
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    h1 { font-size: 24px; font-weight: 700; color: var(--color-text); margin-bottom: 4px; }
+    .page-desc { font-size: 13px; color: var(--color-text-muted); margin-bottom: 20px; }
+
+    /* ── Search criteria card ─────────────────────────────── */
+    .criteria-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .criteria-card__header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--color-border);
+      background: #FAFBFD;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .criteria-card__header .material-icons { font-size: 18px; color: var(--color-primary); }
+    .criteria-card__header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .criteria-card__body { padding: 20px 20px 24px; }
+
+    /* ── Form grid ────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 18px 24px;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group--full { grid-column: 1 / -1; }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-input::placeholder { color: var(--color-text-light); }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(75,125,200,.15);
+      background: var(--color-surface);
+    }
+    .form-select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%236B7280'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 30px;
+      cursor: pointer;
+    }
+
+    /* Tags input (medications) */
+    .tags-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      min-height: 38px;
+      padding: 5px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      background: var(--color-bg);
+      cursor: text;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .tags-wrap:focus-within {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(75,125,200,.15);
+      background: var(--color-surface);
+    }
+    .tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #EEF4FF;
+      color: var(--color-accent);
+      border-radius: 12px;
+      padding: 2px 8px 2px 10px;
+      font-size: 12px; font-weight: 600;
+    }
+    .tag__remove {
+      background: none; border: none; padding: 0; cursor: pointer;
+      display: flex; align-items: center;
+      color: var(--color-accent); opacity: .7;
+      transition: opacity .12s;
+    }
+    .tag__remove:hover { opacity: 1; }
+    .tag__remove .material-icons { font-size: 14px; }
+    .tags-input {
+      flex: 1; min-width: 80px;
+      border: none; outline: none; background: none;
+      font-family: var(--font); font-size: 13px; color: var(--color-text);
+      padding: 1px 2px;
+    }
+    .tags-input::placeholder { color: var(--color-text-light); }
+
+    /* Insurance checkboxes */
+    .insurance-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .ins-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid var(--color-border);
+      border-radius: 20px;
+      background: var(--color-surface);
+      font-size: 12px; font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      user-select: none;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .ins-chip input[type="checkbox"] { display: none; }
+    .ins-chip:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .ins-chip.selected { background: var(--color-accent); border-color: var(--color-accent); color: #fff; }
+
+    /* Divider between sections */
+    .form-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .9px;
+      text-transform: uppercase;
+      color: var(--color-text-light);
+      padding-bottom: 12px;
+      margin-bottom: 2px;
+      border-bottom: 1px solid var(--color-border);
+      grid-column: 1 / -1;
+    }
+
+    /* ── Form actions ─────────────────────────────────────── */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-top: 4px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 20px;
+      border-radius: var(--radius);
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      white-space: nowrap;
+      border: none;
+    }
+    .btn .material-icons { font-size: 18px; }
+    .btn-primary { background: var(--color-accent); color: #fff; border: 1px solid var(--color-accent); }
+    .btn-primary:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+    .btn-ghost {
+      background: none; border: none;
+      color: var(--color-text-muted); font-size: 13px; cursor: pointer;
+      padding: 9px 4px; font-family: var(--font); font-weight: 600;
+    }
+    .btn-ghost:hover { color: var(--color-text); }
+
+    /* ── Results ──────────────────────────────────────────── */
+    .results-section { display: none; }
+    .results-section.visible { display: block; }
+
+    .results-header {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 16px;
+    }
+    .results-header h2 { font-size: 18px; font-weight: 700; color: var(--color-text); }
+    .results-count {
+      font-size: 13px; color: var(--color-text-muted);
+    }
+
+    /* ── Program card (matches patient-detail) ────────────── */
+    .program-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .program-card__body {
+      display: flex; gap: 24px;
+      padding: 20px 24px;
+    }
+    .program-card__left { flex: 1; min-width: 0; }
+    .program-card__right {
+      display: flex; flex-direction: column;
+      align-items: flex-end; gap: 6px;
+      min-width: 180px; flex-shrink: 0;
+    }
+    /* ── Card text hierarchy ──────────────────────────────────
+       Tier 1 – label:  11px / 600 / uppercase
+       Tier 2 – body:   13px / 400 or 600
+       Tier 3 – title:  15px / 700
+    ──────────────────────────────────────────────────────── */
+    .program-category {
+      font-size: 11px; font-weight: 600; letter-spacing: .7px;
+      text-transform: uppercase; color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+    .program-name { font-size: 15px; font-weight: 700; color: var(--color-accent); margin-bottom: 3px; }
+    .program-subtitle { font-size: 13px; color: var(--color-text-muted); margin-bottom: 14px; }
+
+    .program-benefit { display: flex; align-items: flex-start; gap: 10px; }
+    .benefit-icon {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 2px solid var(--color-green);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .benefit-icon .material-icons { font-size: 16px; color: var(--color-green); }
+    .benefit-text strong { display: block; font-size: 13px; font-weight: 600; color: var(--color-text); }
+    .benefit-text span { font-size: 13px; color: var(--color-text-muted); }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 14px;
+      font-size: 11px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase;
+    }
+    .badge .material-icons { font-size: 13px; }
+    .badge--recommended { background: var(--color-green); color: #fff; }
+
+    .program-cost { text-align: right; }
+    .cost-amount { font-size: 18px; font-weight: 700; color: var(--color-text); line-height: 1; }
+    .cost-per { font-size: 11px; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: .5px; }
+    .cost-note { font-size: 13px; color: var(--color-text-muted); margin-top: 2px; }
+
+    .drugs-covered { text-align: right; }
+    .drugs-covered-label { font-size: 11px; font-weight: 600; letter-spacing: .7px; text-transform: uppercase; color: var(--color-text-muted); }
+    .drugs-covered-value { font-size: 13px; color: var(--color-text); font-weight: 400; }
+
+    .program-card__footer {
+      border-top: 1px solid var(--color-border);
+      padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 10px;
+      background: #FAFBFD;
+    }
+    .detailed-rules-toggle {
+      background: none; border: none;
+      font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: .7px; text-transform: uppercase;
+      color: var(--color-accent); cursor: pointer;
+      display: flex; align-items: center; gap: 4px; padding: 0;
+    }
+    .detailed-rules-toggle .toggle-label { text-decoration: underline; text-underline-offset: 2px; }
+    .detailed-rules-toggle .material-icons { font-size: 16px; transition: transform .2s; }
+    .detailed-rules-toggle.open .material-icons { transform: rotate(180deg); }
+
+    .detailed-rules-panel {
+      display: none;
+      padding: 14px 24px;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+    .detailed-rules-panel.open { display: block; }
+    .detailed-rules-panel ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .detailed-rules-panel li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 13px; color: var(--color-text);
+    }
+    .detailed-rules-panel li::before {
+      content: '';
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--color-accent);
+      margin-top: 6px; flex-shrink: 0;
+    }
+
+    /* ── Empty / no-results state ─────────────────────────── */
+    .no-results {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 64px 32px;
+      text-align: center;
+    }
+    .no-results .material-icons { font-size: 48px; color: var(--color-text-light); margin-bottom: 16px; display: block; }
+    .no-results h3 { font-size: 17px; font-weight: 700; color: var(--color-text-muted); margin-bottom: 8px; }
+    .no-results p { font-size: 13px; color: var(--color-text-muted); max-width: 400px; margin: 0 auto; line-height: 1.6; }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.visible { display: block; }
+      .main { margin-left: 0; }
+      .topbar__hamburger { display: flex; }
+      .content { padding: 16px 12px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .program-card__body { flex-direction: column; }
+      .program-card__right { align-items: flex-start; min-width: 0; }
+      .drugs-covered, .program-cost { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 155.62 58.3" height="32" aria-label="Vivor">
+      <style>.st0{fill:#fff}</style>
+      <g><polygon class="st0" points="50.1 57.17 39.76 57.26 39.76 18.06 50.07 18.06 50.1 57.17"/><path class="st0" d="M51.06,6.02c.33,4.29-2.44,7.17-6.15,7.21-3.97.04-6.34-2.86-6.2-7,.12-3.47,2.49-6.03,5.76-6.22s6.28,2.07,6.59,6.01Z"/></g>
+      <g><path class="st0" d="M155.62,28.61c-2.99.05-5.62.15-7.84,1.97-1.66,1.36-3.04,4.24-3.06,6.88l-.17,19.75h-10.91s0-39.14,0-39.14l9.6-.07.47,6.52c2.53-4.76,6.47-7.74,11.9-6.5v10.59Z"/><path class="st0" d="M107.9,58.21c-10.28-.52-17.58-8.56-18.42-18.22-.52-5.95,1.12-12.63,5.54-17.08,7.04-7.08,19.33-7.92,27.08-1.07,9.38,8.3,9.26,23.17.33,31.54-3.93,3.69-9.01,5.11-14.53,4.83ZM108.68,47.67c3.29.13,6.08-.77,8.01-3.63,2.56-3.81,2.65-9.91-.71-13.61-3.56-3.91-10.46-3.71-13.85.24-1.96,2.28-2.5,5.92-2.18,8.55.59,4.93,3.74,8.24,8.73,8.44Z"/></g>
+      <g><path class="st0" d="M89.75,18.12l-10.24,32.98c-.93,3-2.91,5.9-5.92,6.83-4.53,1.39-8.96-1.32-10.28-5.82l-9.99-34.01,11.52-.07,6.66,25.14,6.53-25.07h11.72Z"/><path class="st0" d="M18.41,58.27c-8.01.48-8.77-7.73-10.83-14.16l4.01-.54-2.99-9.76c-1.27-.27-2.49-.43-4.2-.6L0,18.14c4.28-.13,7.62-.14,11.57-.02l6.51,25.04,6.62-25.15,11.65.07-10.61,34.22c-1.12,3.62-4.1,5.77-7.33,5.96Z"/></g>
+    </svg>
+  </div>
+  <nav class="sidebar__nav">
+    <a class="nav-item" href="alerts.html">
+      <span class="material-icons">notifications</span>Alerts
+    </a>
+    <a class="nav-item" href="organizations.html">
+      <span class="material-icons">business</span>Organizations
+    </a>
+    <a class="nav-item" href="patients.html">
+      <span class="material-icons">people</span>Patients
+    </a>
+    <a class="nav-item active" href="one-time-search.html">
+      <span class="material-icons">manage_search</span>One-Time Search
+    </a>
+  </nav>
+  <div class="sidebar__footer">
+    <a class="nav-item" href="#"><span class="material-icons">help_outline</span>Support</a>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar__left">
+      <button class="topbar__hamburger" onclick="openSidebar()" aria-label="Open menu">
+        <span class="material-icons">menu</span>
+      </button>
+      <div class="topbar__org"><strong>Northside Regional Cancer Center</strong></div>
+    </div>
+    <div class="topbar__user-wrap">
+      <div class="topbar__user" onclick="toggleUserPopover(event)">
+        Welcome, <strong>Katy</strong>
+        <span class="material-icons">settings</span>
+      </div>
+      <div class="user-popover" id="userPopover">
+        <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
+        <button class="popover-item" onclick="window.location.href='login.html'"><span class="material-icons">logout</span>Log Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <h1>One-Time Search</h1>
+    <p class="page-desc">Search for financial assistance programs based on patient criteria without creating a patient record.</p>
+
+    <!-- ── Criteria card ──────────────────────────────────── -->
+    <div class="criteria-card">
+      <div class="criteria-card__header">
+        <span class="material-icons">tune</span>
+        <h2>Search Criteria</h2>
+      </div>
+      <div class="criteria-card__body">
+        <div class="form-grid">
+
+          <!-- Section: Patient Profile -->
+          <div class="form-section-label">Patient Profile</div>
+
+          <!-- Age -->
+          <div class="form-group">
+            <label class="form-label">Age</label>
+            <select class="form-select" id="ageRange">
+              <option value="">Any age</option>
+              <option value="under18">Under 18</option>
+              <option value="18-25">18 – 25</option>
+              <option value="26-35">26 – 35</option>
+              <option value="36-45">36 – 45</option>
+              <option value="46-55">46 – 55</option>
+              <option value="56-64">56 – 64</option>
+              <option value="65-74">65 – 74</option>
+              <option value="75plus">75 and older</option>
+            </select>
+          </div>
+
+          <!-- Household Size -->
+          <div class="form-group">
+            <label class="form-label">Household Size</label>
+            <select class="form-select" id="hhSizeRange">
+              <option value="">Any size</option>
+              <option value="1">1 person</option>
+              <option value="2">2 people</option>
+              <option value="3">3 people</option>
+              <option value="4">4 people</option>
+              <option value="5">5 people</option>
+              <option value="6plus">6 or more people</option>
+            </select>
+          </div>
+
+          <!-- Annual Household Income -->
+          <div class="form-group">
+            <label class="form-label">Annual Household Income</label>
+            <select class="form-select" id="incomeRange">
+              <option value="">Any income</option>
+              <option value="under15k">Under $15,000</option>
+              <option value="15k-25k">$15,000 – $24,999</option>
+              <option value="25k-35k">$25,000 – $34,999</option>
+              <option value="35k-50k">$35,000 – $49,999</option>
+              <option value="50k-75k">$50,000 – $74,999</option>
+              <option value="75k-100k">$75,000 – $99,999</option>
+              <option value="100k-150k">$100,000 – $149,999</option>
+              <option value="150kplus">$150,000 and above</option>
+            </select>
+          </div>
+
+          <!-- Section: Clinical Information -->
+          <div class="form-section-label">Clinical Information</div>
+
+          <!-- Diagnosis -->
+          <div class="form-group">
+            <label class="form-label">Diagnosis</label>
+            <select class="form-select" id="diagnosis">
+              <option value="">Select diagnosis…</option>
+              <option value="breast">Breast Cancer</option>
+              <option value="lung">Lung Cancer</option>
+              <option value="colorectal">Colorectal Cancer</option>
+              <option value="prostate">Prostate Cancer</option>
+              <option value="leukemia">Leukemia / Lymphoma</option>
+              <option value="melanoma">Melanoma</option>
+              <option value="ovarian">Ovarian Cancer</option>
+              <option value="pancreatic">Pancreatic Cancer</option>
+              <option value="multiple_myeloma">Multiple Myeloma</option>
+              <option value="ms">Multiple Sclerosis</option>
+              <option value="other">Other / Unknown</option>
+            </select>
+          </div>
+
+          <!-- Medications -->
+          <div class="form-group" style="grid-column: span 2">
+            <label class="form-label">Medications</label>
+            <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('medInput').focus()">
+              <input class="tags-input" id="medInput" type="text"
+                     placeholder="Type a drug name and press Enter…"
+                     onkeydown="handleTagInput(event)"
+                     oninput="handleMedAutocomplete()" autocomplete="off" />
+            </div>
+            <div style="font-size:11px;color:var(--color-text-light);margin-top:4px;">Press Enter or comma to add each medication</div>
+          </div>
+
+          <!-- Section: Insurance -->
+          <div class="form-section-label">Insurance Coverage</div>
+
+          <!-- Insurance type -->
+          <div class="form-group form-group--full">
+            <label class="form-label">Insurance Type <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px;">(select all that apply)</span></label>
+            <div class="insurance-options" id="insuranceOptions">
+              <label class="ins-chip" id="ins-commercial">
+                <input type="checkbox" value="commercial" onchange="toggleInsChip(this)" />
+                Commercial / Private
+              </label>
+              <label class="ins-chip" id="ins-medicare">
+                <input type="checkbox" value="medicare" onchange="toggleInsChip(this)" />
+                Medicare
+              </label>
+              <label class="ins-chip" id="ins-medicaid">
+                <input type="checkbox" value="medicaid" onchange="toggleInsChip(this)" />
+                Medicaid
+              </label>
+              <label class="ins-chip" id="ins-tricare">
+                <input type="checkbox" value="tricare" onchange="toggleInsChip(this)" />
+                TRICARE / VA
+              </label>
+              <label class="ins-chip" id="ins-uninsured">
+                <input type="checkbox" value="uninsured" onchange="toggleInsChip(this)" />
+                Uninsured / Self-Pay
+              </label>
+            </div>
+          </div>
+
+        </div><!-- /form-grid -->
+
+        <div class="form-actions">
+          <button class="btn btn-primary" onclick="runSearch()">
+            <span class="material-icons">search</span>Search Programs
+          </button>
+          <button class="btn-ghost" onclick="clearForm()">Clear all</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Results ──────────────────────────────────────────── -->
+    <div class="results-section" id="resultsSection">
+      <div class="results-header">
+        <h2>Matching Programs</h2>
+        <span class="results-count" id="resultsCount"></span>
+      </div>
+      <div id="programsList"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* ── Programs data ──────────────────────────────────────── */
+  const PROGRAMS = [
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Novartis Oncology',
+      subtitle: 'Universal Co-Pay Program for SIGNIFOR',
+      benefit: 'Pays up to $15,000 per year',
+      benefitNote: 'but no more than your actual out-of-pocket expenses',
+      cost: '$25', costPer: '/ TREATMENT', costNote: 'out-of-pocket drug costs',
+      drugs: 'Signifor Injectable',
+      match: (c) => {
+        if (c.insurance.has('medicare') || c.insurance.has('medicaid') || c.insurance.has('tricare')) return false;
+        if (!c.insurance.has('commercial') && !c.insurance.has('uninsured') && c.insurance.size > 0 && !c.insurance.has('commercial')) return false;
+        if (c.ageMin !== null && c.ageMin < 18) return false;
+        // 500% FPL: ~$73k individual, ~$17k per additional person
+        if (c.incomeMax !== null && c.hhSizeMin !== null) {
+          const fpl500 = 15060 + (c.hhSizeMin - 1) * 5380;
+          if (c.incomeMax > fpl500 * 5) return false;
+        }
+        return true;
+      },
+      rules: [
+        'Patient must have commercial or private insurance',
+        'Patient must be 18 years of age or older',
+        'Program valid for 12 months from date of enrollment',
+        'Household income must not exceed 500% of the Federal Poverty Level',
+        'Not valid for patients covered under Medicare, Medicaid, or other government programs'
+      ]
+    },
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Biogen Idec',
+      subtitle: '$0 Copay Program for Tysabri',
+      benefit: null, benefitNote: null,
+      cost: '$0', costPer: '/ TREATMENT', costNote: 'out-of-pocket drug costs',
+      drugs: 'Tysabri Injectable',
+      match: (c) => {
+        if (c.insurance.has('medicare') || c.insurance.has('medicaid') || c.insurance.has('tricare') || c.insurance.has('uninsured')) return false;
+        const msDx = !c.diagnosis || c.diagnosis === 'ms' || c.diagnosis === 'other' || c.diagnosis === '';
+        if (!msDx) return false;
+        const hasTysabri = c.meds.length === 0 || c.meds.some(m => m.toLowerCase().includes('tysabri') || m.toLowerCase().includes('natal'));
+        return hasTysabri || c.meds.length === 0;
+      },
+      rules: [
+        'Must be commercially insured at the time of enrollment',
+        'Cannot be enrolled in any government-funded insurance program',
+        'Annual renewal required to maintain enrollment',
+        'Valid only at participating specialty pharmacies',
+        'Patient must sign a program agreement form'
+      ]
+    },
+    {
+      category: 'FOUNDATION ASSISTANCE',
+      name: 'Cancer Care Co-Pay Foundation',
+      subtitle: 'Financial Assistance for Oncology Patients',
+      benefit: 'Grants up to $10,000 per year',
+      benefitNote: 'based on financial need and diagnosis eligibility',
+      cost: '$0', costPer: '/ GRANT', costNote: 'direct patient assistance',
+      drugs: 'Chemotherapy & supportive care drugs',
+      match: (c) => {
+        // Available for all insurance types including uninsured
+        // Requires oncology diagnosis
+        const nonOncology = ['ms'];
+        if (c.diagnosis && nonOncology.includes(c.diagnosis)) return false;
+        return true;
+      },
+      rules: [
+        'Patient must have a qualifying oncology diagnosis',
+        'Must demonstrate financial need; income verification required',
+        'Grant applications reviewed within 5 business days',
+        'Funds are distributed directly to the provider or pharmacy',
+        'Available for both insured and uninsured patients'
+      ]
+    },
+    {
+      category: 'GOVERNMENT PROGRAM',
+      name: 'Medicare Extra Help',
+      subtitle: 'Low-Income Subsidy for Prescription Drug Costs',
+      benefit: 'Reduces Part D premiums, deductibles & copays',
+      benefitNote: 'eligibility based on income and total resources',
+      cost: 'Varies', costPer: '', costNote: 'based on income level',
+      drugs: 'All Medicare Part D covered drugs',
+      match: (c) => {
+        if (c.insurance.size > 0 && !c.insurance.has('medicare')) return false;
+        // Income: ~$21,870 individual / $29,580 married
+        const hhSize = c.hhSizeMin || 1;
+        const incomeThreshold = hhSize === 1 ? 21870 : hhSize === 2 ? 29580 : 29580 + (hhSize - 2) * 4000;
+        if (c.incomeMin !== null && c.incomeMin > incomeThreshold) return false;
+        // Age: typically 65+, but allow if Medicare is selected
+        if (c.ageMin !== null && c.ageMin < 65 && !c.insurance.has('medicare')) return false;
+        return true;
+      },
+      rules: [
+        'Must be enrolled in Medicare Part A or Part B',
+        'Annual income below $21,870 (individual) or $29,580 (married couple)',
+        'Resources below $16,660 (individual) or $33,240 (married)',
+        'Apply through the Social Security Administration',
+        'Must reapply each year; eligibility is re-evaluated annually'
+      ]
+    },
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Pfizer RxPathways',
+      subtitle: 'Co-Pay Assistance & Patient Support Program',
+      benefit: 'Up to $500 per month in co-pay savings',
+      benefitNote: 'no income requirements for co-pay card program',
+      cost: '$0', costPer: '/ MONTH', costNote: 'co-pay card assistance',
+      drugs: 'Ibrance, Xalkori, Sutent & others',
+      match: (c) => {
+        if (c.insurance.has('medicare') || c.insurance.has('medicaid') || c.insurance.has('tricare') || c.insurance.has('uninsured')) return false;
+        return true;
+      },
+      rules: [
+        'Must have commercial or private insurance coverage',
+        'Not valid for patients covered by government-funded programs',
+        'Co-pay card must be presented at time of dispensing',
+        'Maximum annual benefit of $6,000 per calendar year',
+        'Eligible prescriptions must be dispensed at participating pharmacies'
+      ]
+    },
+    {
+      category: 'FOUNDATION ASSISTANCE',
+      name: 'Patient Advocate Foundation',
+      subtitle: 'Co-Pay Relief Program for Cancer Patients',
+      benefit: 'Up to $6,000 per year in co-pay assistance',
+      benefitNote: 'based on disease fund availability',
+      cost: '$0', costPer: '/ YEAR', costNote: 'co-pay & premium assistance',
+      drugs: 'Diagnosis-specific drug coverage',
+      match: (c) => {
+        // Requires insurance, any type except fully uninsured
+        if (c.insurance.size > 0 && c.insurance.has('uninsured') && c.insurance.size === 1) return false;
+        const nonOncology = ['ms'];
+        if (c.diagnosis && nonOncology.includes(c.diagnosis)) return false;
+        // Income <= 400% FPL
+        const hhSize = c.hhSizeMin || 1;
+        const fpl400 = (15060 + (hhSize - 1) * 5380) * 4;
+        if (c.incomeMin !== null && c.incomeMin > fpl400) return false;
+        return true;
+      },
+      rules: [
+        'Must have a qualifying cancer diagnosis',
+        'Must be insured (private, Medicare, or Medicaid)',
+        'Household income at or below 400% of Federal Poverty Level',
+        'Funds disbursed directly to insurance company or provider',
+        'Disease fund must have available balance at time of application'
+      ]
+    },
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'AstraZeneca AZ&Me',
+      subtitle: 'Prescription Savings Program',
+      benefit: 'Free or reduced-cost AstraZeneca medications',
+      benefitNote: 'based on financial need and eligibility',
+      cost: '$0', costPer: '/ MONTH', costNote: 'for qualifying patients',
+      drugs: 'Tagrisso, Imfinzi, Lynparza & others',
+      match: (c) => {
+        if (c.insurance.has('medicaid')) return false;
+        // Income <= 600% FPL
+        const hhSize = c.hhSizeMin || 1;
+        const fpl600 = (15060 + (hhSize - 1) * 5380) * 6;
+        if (c.incomeMin !== null && c.incomeMin > fpl600) return false;
+        // Relevant for lung, ovarian, breast
+        const relevant = ['lung', 'ovarian', 'breast', 'other', ''];
+        if (c.diagnosis && !relevant.includes(c.diagnosis)) return false;
+        return true;
+      },
+      rules: [
+        'Must be a U.S. resident without adequate prescription coverage',
+        'Household income must not exceed 600% of the Federal Poverty Level',
+        'Medicare patients may qualify for certain products',
+        'Not available to patients currently enrolled in Medicaid',
+        'Application must be completed by the prescribing provider'
+      ]
+    }
+  ];
+
+  /* ── Medication tags ────────────────────────────────────── */
+  let tags = [];
+
+  function handleTagInput(e) {
+    const input = document.getElementById('medInput');
+    if ((e.key === 'Enter' || e.key === ',') && input.value.trim()) {
+      e.preventDefault();
+      addTag(input.value.replace(/,$/, '').trim());
+      input.value = '';
+    } else if (e.key === 'Backspace' && !input.value && tags.length) {
+      removeTag(tags.length - 1);
+    }
+  }
+
+  function addTag(val) {
+    if (!val || tags.includes(val)) return;
+    tags.push(val);
+    renderTags();
+  }
+
+  function removeTag(idx) {
+    tags.splice(idx, 1);
+    renderTags();
+  }
+
+  function renderTags() {
+    const wrap = document.getElementById('tagsWrap');
+    const input = document.getElementById('medInput');
+    // Remove existing tags (keep the input)
+    wrap.querySelectorAll('.tag').forEach(t => t.remove());
+    tags.forEach((tag, i) => {
+      const el = document.createElement('span');
+      el.className = 'tag';
+      el.innerHTML = `${tag}<button class="tag__remove" onclick="removeTag(${i})" type="button"><span class="material-icons">close</span></button>`;
+      wrap.insertBefore(el, input);
+    });
+    input.placeholder = tags.length ? '' : 'Type a drug name and press Enter…';
+  }
+
+  function handleMedAutocomplete() {
+    // Placeholder — could show suggestions in a future iteration
+  }
+
+  /* ── Insurance chip toggle ──────────────────────────────── */
+  function toggleInsChip(checkbox) {
+    checkbox.closest('.ins-chip').classList.toggle('selected', checkbox.checked);
+  }
+
+  /* ── Range lookup tables ────────────────────────────────── */
+  const AGE_RANGES = {
+    'under18':  { min: 0,   max: 17  },
+    '18-25':    { min: 18,  max: 25  },
+    '26-35':    { min: 26,  max: 35  },
+    '36-45':    { min: 36,  max: 45  },
+    '46-55':    { min: 46,  max: 55  },
+    '56-64':    { min: 56,  max: 64  },
+    '65-74':    { min: 65,  max: 74  },
+    '75plus':   { min: 75,  max: null },
+  };
+  const HH_RANGES = {
+    '1':      { min: 1, max: 1 },
+    '2':      { min: 2, max: 2 },
+    '3':      { min: 3, max: 3 },
+    '4':      { min: 4, max: 4 },
+    '5':      { min: 5, max: 5 },
+    '6plus':  { min: 6, max: null },
+  };
+  const INCOME_RANGES = {
+    'under15k':   { min: 0,       max: 14999  },
+    '15k-25k':    { min: 15000,   max: 24999  },
+    '25k-35k':    { min: 25000,   max: 34999  },
+    '35k-50k':    { min: 35000,   max: 49999  },
+    '50k-75k':    { min: 50000,   max: 74999  },
+    '75k-100k':   { min: 75000,   max: 99999  },
+    '100k-150k':  { min: 100000,  max: 149999 },
+    '150kplus':   { min: 150000,  max: null   },
+  };
+
+  /* ── Gather criteria ────────────────────────────────────── */
+  function getCriteria() {
+    const ageVal    = document.getElementById('ageRange').value;
+    const hhVal     = document.getElementById('hhSizeRange').value;
+    const incVal    = document.getElementById('incomeRange').value;
+    const ageR      = AGE_RANGES[ageVal]    || { min: null, max: null };
+    const hhR       = HH_RANGES[hhVal]      || { min: null, max: null };
+    const incR      = INCOME_RANGES[incVal] || { min: null, max: null };
+    const selected  = [...document.querySelectorAll('#insuranceOptions input[type="checkbox"]:checked')].map(cb => cb.value);
+    return {
+      ageMin:    ageR.min,
+      ageMax:    ageR.max,
+      hhSizeMin: hhR.min,
+      hhSizeMax: hhR.max,
+      incomeMin: incR.min,
+      incomeMax: incR.max,
+      diagnosis: document.getElementById('diagnosis').value,
+      meds:      [...tags],
+      insurance: new Set(selected)
+    };
+  }
+
+  /* ── Run search ─────────────────────────────────────────── */
+  function runSearch() {
+    const c = getCriteria();
+    const matches = PROGRAMS.filter(p => p.match(c));
+
+    const section = document.getElementById('resultsSection');
+    const list    = document.getElementById('programsList');
+    const countEl = document.getElementById('resultsCount');
+
+    section.classList.add('visible');
+    countEl.textContent = matches.length === 0
+      ? 'No programs found'
+      : `${matches.length} program${matches.length !== 1 ? 's' : ''} found`;
+
+    if (matches.length === 0) {
+      list.innerHTML = `
+        <div class="no-results">
+          <span class="material-icons">search_off</span>
+          <h3>No matching programs found</h3>
+          <p>Try broadening the search criteria — for example, expanding the income range, selecting additional insurance types, or leaving some fields blank.</p>
+        </div>`;
+    } else {
+      list.innerHTML = matches.map((p, i) => renderProgramCard(p, i)).join('');
+    }
+
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderProgramCard(p, idx) {
+    const benefitHtml = p.benefit
+      ? `<div class="program-benefit">
+           <div class="benefit-icon"><span class="material-icons">savings</span></div>
+           <div class="benefit-text">
+             <strong>${p.benefit}</strong>
+             ${p.benefitNote ? `<span>${p.benefitNote}</span>` : ''}
+           </div>
+         </div>`
+      : '';
+
+    return `
+      <div class="program-card">
+        <div class="program-card__body">
+          <div class="program-card__left">
+            <div class="program-category">${p.category}</div>
+            <div class="program-name">${p.name}</div>
+            <div class="program-subtitle">${p.subtitle}</div>
+            ${benefitHtml}
+          </div>
+          <div class="program-card__right">
+            <div class="program-cost">
+              <div class="cost-amount">${p.cost}</div>
+              ${p.costPer ? `<div class="cost-per">${p.costPer}</div>` : ''}
+              <div class="cost-note">${p.costNote}</div>
+            </div>
+            <div class="drugs-covered">
+              <div class="drugs-covered-label">Drugs Covered</div>
+              <div class="drugs-covered-value">${p.drugs}</div>
+            </div>
+          </div>
+        </div>
+        <div class="program-card__footer">
+          <button class="detailed-rules-toggle" onclick="toggleRules(this, 'rules-${idx}')">
+            <span class="toggle-label">View Detailed Rules</span>
+            <span class="material-icons">expand_more</span>
+          </button>
+        </div>
+        <div class="detailed-rules-panel" id="rules-${idx}">
+          <ul>${p.rules.map(r => `<li>${r}</li>`).join('')}</ul>
+        </div>
+      </div>`;
+  }
+
+  function toggleRules(btn, panelId) {
+    btn.classList.toggle('open');
+    document.getElementById(panelId).classList.toggle('open');
+    btn.querySelector('.toggle-label').textContent =
+      btn.classList.contains('open') ? 'Hide Detailed Rules' : 'View Detailed Rules';
+  }
+
+  /* ── Clear form ─────────────────────────────────────────── */
+  function clearForm() {
+    ['ageRange','hhSizeRange','incomeRange'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('diagnosis').value = '';
+    tags = [];
+    renderTags();
+    document.querySelectorAll('#insuranceOptions input[type="checkbox"]').forEach(cb => {
+      cb.checked = false;
+      cb.closest('.ins-chip').classList.remove('selected');
+    });
+    document.getElementById('resultsSection').classList.remove('visible');
+  }
+
+  /* ── User popover ───────────────────────────────────────── */
+  function toggleUserPopover(e) {
+    e.stopPropagation();
+    document.getElementById('userPopover').classList.toggle('open');
+  }
+  document.addEventListener('click', e => {
+    const userWrap = document.querySelector('.topbar__user-wrap');
+    if (userWrap && !userWrap.contains(e.target)) {
+      document.getElementById('userPopover').classList.remove('open');
+    }
+  });
+
+  /* ── Sidebar (mobile) ───────────────────────────────────── */
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('overlay').classList.add('visible'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('visible'); }
+</script>
+</body>
+</html>

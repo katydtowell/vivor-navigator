@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vivor – Patient Detail</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <style>
+    /* ── Design tokens ──────────────────────────────────────── */
+    :root {
+      --color-primary:       #6366A8;
+      --color-primary-dark:  #4E5190;
+      --color-accent:        #4B7DC8;
+      --color-accent-hover:  #3A6AB5;
+      --color-green:         #059669;
+      --color-green-bg:      #ECFDF5;
+      --color-red:           #DC2626;
+      --color-red-bg:        #FEF2F2;
+      --color-orange:        #D97706;
+      --color-orange-bg:     #FFFBEB;
+
+      --color-bg:            #F4F6F9;
+      --color-surface:       #FFFFFF;
+      --color-border:        #DDE1EC;
+      --color-text:          #2D2F4A;
+      --color-text-muted:    #6B7280;
+      --color-text-light:    #9CA3AF;
+
+      --chip-new-bg:         #EEF4FF;
+      --chip-new-text:       #4B7DC8;
+      --chip-enrolled-bg:    #ECFDF5;
+      --chip-enrolled-text:  #059669;
+      --chip-excluded-bg:    #EBEBEB;
+      --chip-excluded-text:  #6B7280;
+
+      --sidebar-width: 220px;
+      --font: 'Open Sans', sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 4px rgba(0,0,0,.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--color-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+      transition: transform .25s ease;
+    }
+    .sidebar__logo {
+      padding: 20px 20px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sidebar__nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 20px;
+      color: rgba(255,255,255,.72);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.10); color: #fff; }
+    .nav-item.active {
+      background: var(--color-primary-dark);
+      color: #fff;
+      box-shadow: inset 3px 0 0 #fff;
+    }
+    .nav-item .material-icons { font-size: 20px; opacity: .9; }
+
+    .sidebar__footer {
+      padding: 12px 0;
+      border-top: 1px solid rgba(255,255,255,.12);
+    }
+
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.35);
+      z-index: 90;
+    }
+
+    /* ── Main ─────────────────────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    /* ── Topbar ───────────────────────────────────────────── */
+    .topbar {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      height: 52px;
+      flex-shrink: 0;
+      gap: 16px;
+    }
+    .topbar__left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex: 1;
+      min-width: 0;
+    }
+    .topbar__hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: var(--color-text-muted);
+      flex-shrink: 0;
+    }
+    .topbar__hamburger .material-icons { font-size: 24px; }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      color: var(--color-accent);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: color .15s;
+    }
+    .back-link:hover { color: var(--color-accent-hover); }
+    .back-link .material-icons { font-size: 18px; }
+
+    .topbar-search {
+      flex: 1;
+      max-width: 380px;
+      position: relative;
+    }
+    .topbar-search input {
+      width: 100%;
+      padding: 7px 34px 7px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .topbar-search input::placeholder { color: var(--color-text-light); }
+    .topbar-search input:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(75,125,200,.15);
+      background: var(--color-surface);
+    }
+    .search-icon-btn {
+      position: absolute;
+      right: 7px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      padding: 2px;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      color: var(--color-text-muted);
+      border-radius: 50%;
+      transition: background .12s, color .12s;
+      z-index: 2;
+    }
+    .search-icon-btn.has-value { cursor: pointer; }
+    .search-icon-btn.has-value:hover { background: var(--color-border); color: var(--color-text); }
+    .search-icon-btn .material-icons { font-size: 18px; }
+
+    /* Autocomplete dropdown */
+    .autocomplete-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      max-height: 320px;
+      overflow-y: auto;
+      z-index: 300;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .autocomplete-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      text-decoration: none;
+      color: var(--color-text);
+      font-size: 13px;
+      transition: background .1s;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: #F7F8FD; }
+    .autocomplete-item .material-icons { font-size: 18px; color: var(--color-text-muted); flex-shrink: 0; }
+    .autocomplete-item__name { font-weight: 600; line-height: 1.3; }
+    .autocomplete-item__meta { font-size: 11px; color: var(--color-text-muted); margin-top: 1px; }
+    .autocomplete-item .chip { font-size: 10px; padding: 1px 7px; vertical-align: middle; }
+    .autocomplete-no-results {
+      padding: 14px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+    }
+
+    .topbar__user-wrap { position: relative; flex-shrink: 0; }
+    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user strong { color: var(--color-text); font-weight: 600; }
+    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .user-popover {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.14);
+      min-width: 160px; z-index: 400; display: none;
+    }
+    .user-popover.open { display: block; }
+    .popover-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 16px;
+      background: none; border: none; border-bottom: 1px solid var(--color-border);
+      font-family: var(--font); font-size: 13px; color: var(--color-text);
+      cursor: pointer; text-align: left; transition: background .1s;
+    }
+    .popover-item:last-child { border-bottom: none; }
+    .popover-item:hover { background: #F7F8FD; }
+    .popover-item .material-icons { font-size: 17px; color: var(--color-text-muted); }
+
+    /* ── Content ──────────────────────────────────────────── */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px 32px;
+    }
+
+    /* ── Patient header ───────────────────────────────────── */
+    .patient-header-wrap {
+      background: var(--color-surface);
+      padding: 24px 0 0;
+      margin: -28px -32px 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .patient-header {
+      margin-bottom: 20px;
+      padding: 0 32px;
+    }
+
+    .patient-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .patient-title h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.2;
+    }
+    .flag-icon          { font-size: 22px !important; color: #27AE60; }
+    .enrolled-icon      { font-size: 22px !important; color: var(--color-accent); }
+
+    .patient-meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 24px;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .meta-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .meta-value {
+      font-size: 13px;
+      color: var(--color-text);
+      font-weight: 400;
+    }
+
+    .assigned-select {
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--color-accent);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 3px 24px 3px 8px;
+      background: var(--color-surface);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%234B7DC8'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 4px center;
+    }
+    .assigned-select:focus { border-color: var(--color-accent); }
+
+    .chip {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+    .chip--new      { background: var(--chip-new-bg);      color: var(--chip-new-text); }
+    .chip--enrolled { background: var(--chip-enrolled-bg); color: var(--chip-enrolled-text); }
+    .chip--excluded { background: var(--chip-excluded-bg); color: var(--chip-excluded-text); }
+
+    /* ── Buttons ──────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      white-space: nowrap;
+    }
+    .btn .material-icons { font-size: 17px; }
+
+    .btn-primary {
+      background: var(--color-accent);
+      color: #fff;
+      border: 1px solid var(--color-accent);
+    }
+    .btn-primary:hover { background: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+
+    .btn-outline {
+      background: var(--color-surface);
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+    }
+    .btn-outline:hover { background: #EEF4FF; }
+
+    .btn-outline-gray {
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      border: 1px solid var(--color-border);
+    }
+    .btn-outline-gray:hover { background: var(--color-bg); }
+
+    /* ── Tabs ─────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      border-top: 1px solid var(--color-border);
+      border-bottom: none;
+      margin: 0;
+      background: var(--color-surface);
+      overflow: hidden;
+    }
+    .tab-btn:first-child { margin-left: 32px; }
+    .tab-btn {
+      padding: 12px 22px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      background: #EDEEF4;
+      border: none;
+      border-right: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background .15s, color .15s;
+      position: relative;
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn:hover:not(.active) { background: #E2E4EE; color: var(--color-text); }
+    .tab-btn.active {
+      background: var(--color-surface);
+      color: var(--color-accent);
+      border-bottom: 2px solid var(--color-accent);
+      margin-bottom: -1px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; padding-top: 24px; }
+
+    /* ── Programs section ─────────────────────────────────── */
+    .programs-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .programs-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    /* ── Program card ─────────────────────────────────────── */
+    .program-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .program-card__body {
+      display: flex;
+      gap: 24px;
+      padding: 20px 24px;
+    }
+
+    .program-card__left { flex: 1; min-width: 0; }
+    .program-card__right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+
+    /* ── Card text hierarchy ──────────────────────────────────
+       Tier 1 – label:  11px / 600 / uppercase
+       Tier 2 – body:   13px / 400 or 600
+       Tier 3 – title:  15px / 700
+    ──────────────────────────────────────────────────────── */
+    .program-category {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+      margin-bottom: 4px;
+    }
+    .program-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--color-accent);
+      margin-bottom: 3px;
+    }
+    .program-subtitle {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-bottom: 14px;
+    }
+
+    .program-benefit {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .benefit-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid var(--color-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .benefit-icon .material-icons { font-size: 16px; color: var(--color-green); }
+    .benefit-text strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    .benefit-text span {
+      font-size: 13px;
+      color: var(--color-text-muted);
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .badge .material-icons { font-size: 13px; }
+    .badge--recommended { background: var(--color-green);  color: #fff; }
+    .badge--enrolled    { background: var(--color-accent);  color: #fff; }
+
+    /* Cost display */
+    .program-cost {
+      text-align: right;
+    }
+    .cost-amount {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1;
+    }
+    .cost-per {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .cost-note {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      margin-top: 2px;
+    }
+
+    .drugs-covered {
+      text-align: right;
+    }
+    .drugs-covered-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--color-text-muted);
+    }
+    .drugs-covered-value {
+      font-size: 13px;
+      color: var(--color-text);
+      font-weight: 400;
+    }
+
+    /* Card footer */
+    .program-card__footer {
+      border-top: 1px solid var(--color-border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      background: #FAFBFD;
+    }
+
+    .detailed-rules-toggle {
+      background: none;
+      border: none;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      color: var(--color-accent);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+    }
+    .detailed-rules-toggle .toggle-label {
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .detailed-rules-toggle .material-icons {
+      font-size: 16px;
+      transition: transform .2s;
+      text-decoration: none;
+    }
+    .detailed-rules-toggle.open .material-icons { transform: rotate(180deg); }
+
+    .footer-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* Detailed rules panel */
+    .detailed-rules-panel {
+      display: none;
+      padding: 14px 24px;
+      border-top: 1px solid var(--color-border);
+      background: var(--color-bg);
+    }
+    .detailed-rules-panel.open { display: block; }
+    .detailed-rules-panel ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .detailed-rules-panel li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+    .detailed-rules-panel li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    /* Card action links row */
+    .program-card__actions {
+      padding: 10px 24px 14px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      padding: 0;
+      transition: opacity .15s;
+    }
+    .action-link:hover { opacity: .75; }
+    .action-link .material-icons { font-size: 15px; }
+    .action-link--enroll  { color: var(--color-accent); }
+    .action-link--exclude { color: var(--color-text-muted); }
+    .action-link--problem { color: var(--color-orange); }
+    .action-link--complete{ color: var(--color-green); }
+
+    /* ── Empty / status states ────────────────────────────── */
+    .state-box {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: var(--shadow-card);
+    }
+    .state-box .material-icons {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .state-box .btn .material-icons {
+      font-size: 17px;
+      margin-bottom: 0;
+      display: inline;
+    }
+    .state-box h3 {
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .state-box p {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      max-width: 420px;
+      margin: 0 auto 20px;
+      line-height: 1.6;
+    }
+    .state-box--excluded .material-icons { color: var(--color-text-muted); }
+    .state-box--excluded h3             { color: var(--color-text-muted); }
+    .state-box--no-programs .material-icons { color: var(--color-text-light); }
+    .state-box--no-programs h3          { color: var(--color-text-muted); }
+
+    /* ── Placeholder tab content ──────────────────────────── */
+    .placeholder-content {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 48px 32px;
+      text-align: center;
+      color: var(--color-text-muted);
+      font-size: 13px;
+      box-shadow: var(--shadow-card);
+    }
+    .placeholder-content .material-icons { font-size: 36px; margin-bottom: 12px; display: block; color: var(--color-text-light); }
+
+    /* ── Exclude modal ────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--color-surface);
+      border-radius: 6px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.22);
+      width: 100%;
+      max-width: 520px;
+      padding: 32px 32px 24px;
+      animation: modalIn .18s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal__title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--color-primary);
+      margin-bottom: 22px;
+      line-height: 1.25;
+    }
+
+    .modal__label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .modal__radios {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .modal__radio-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+    .modal__radio-item input[type="radio"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--color-border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: border-color .15s;
+      position: relative;
+    }
+    .modal__radio-item input[type="radio"]:checked {
+      border-color: var(--color-accent);
+    }
+    .modal__radio-item input[type="radio"]:checked::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: var(--color-accent);
+      border-radius: 50%;
+    }
+    .modal__radio-item input[type="radio"]:hover { border-color: var(--color-accent); }
+
+    .modal__textarea {
+      width: 100%;
+      min-height: 110px;
+      padding: 10px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--color-text);
+      resize: vertical;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+      margin-bottom: 24px;
+    }
+    .modal__textarea:focus {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px rgba(75,125,200,.15);
+    }
+
+    .modal__actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .btn-modal-cancel {
+      background: var(--color-surface);
+      color: var(--color-accent);
+      border: 1px solid var(--color-accent);
+    }
+    .btn-modal-cancel:hover { background: #EEF4FF; }
+
+    .btn-modal-confirm {
+      background: var(--color-accent);
+      color: #fff;
+      border: 1px solid var(--color-accent);
+    }
+    .btn-modal-confirm:hover:not(:disabled) { background: var(--color-accent-hover); }
+    .btn-modal-confirm:disabled {
+      background: #A8BFE0;
+      border-color: #A8BFE0;
+      cursor: not-allowed;
+    }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.visible { display: block; }
+      .main { margin-left: 0; }
+      .topbar__hamburger { display: flex; }
+      .content { padding: 16px 14px; }
+      .program-card__body { flex-direction: column; }
+      .program-card__right { align-items: flex-start; min-width: 0; }
+      .drugs-covered { text-align: left; }
+      .program-cost { text-align: left; }
+      .patient-meta { gap: 14px; }
+      .topbar-search { max-width: 180px; }
+    }
+
+    @media (max-width: 520px) {
+      .patient-title h1 { font-size: 22px; }
+      .program-card__footer { flex-direction: column; align-items: flex-start; }
+      .topbar-search { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 155.62 58.3" height="32" aria-label="Vivor">
+      <style>.st0{fill:#fff}</style>
+      <g><polygon class="st0" points="50.1 57.17 39.76 57.26 39.76 18.06 50.07 18.06 50.1 57.17"/><path class="st0" d="M51.06,6.02c.33,4.29-2.44,7.17-6.15,7.21-3.97.04-6.34-2.86-6.2-7,.12-3.47,2.49-6.03,5.76-6.22s6.28,2.07,6.59,6.01Z"/></g>
+      <g><path class="st0" d="M155.62,28.61c-2.99.05-5.62.15-7.84,1.97-1.66,1.36-3.04,4.24-3.06,6.88l-.17,19.75h-10.91s0-39.14,0-39.14l9.6-.07.47,6.52c2.53-4.76,6.47-7.74,11.9-6.5v10.59Z"/><path class="st0" d="M107.9,58.21c-10.28-.52-17.58-8.56-18.42-18.22-.52-5.95,1.12-12.63,5.54-17.08,7.04-7.08,19.33-7.92,27.08-1.07,9.38,8.3,9.26,23.17.33,31.54-3.93,3.69-9.01,5.11-14.53,4.83ZM108.68,47.67c3.29.13,6.08-.77,8.01-3.63,2.56-3.81,2.65-9.91-.71-13.61-3.56-3.91-10.46-3.71-13.85.24-1.96,2.28-2.5,5.92-2.18,8.55.59,4.93,3.74,8.24,8.73,8.44Z"/></g>
+      <g><path class="st0" d="M89.75,18.12l-10.24,32.98c-.93,3-2.91,5.9-5.92,6.83-4.53,1.39-8.96-1.32-10.28-5.82l-9.99-34.01,11.52-.07,6.66,25.14,6.53-25.07h11.72Z"/><path class="st0" d="M18.41,58.27c-8.01.48-8.77-7.73-10.83-14.16l4.01-.54-2.99-9.76c-1.27-.27-2.49-.43-4.2-.6L0,18.14c4.28-.13,7.62-.14,11.57-.02l6.51,25.04,6.62-25.15,11.65.07-10.61,34.22c-1.12,3.62-4.1,5.77-7.33,5.96Z"/></g>
+    </svg>
+  </div>
+  <nav class="sidebar__nav">
+    <a class="nav-item" href="alerts.html">
+      <span class="material-icons">notifications</span>Alerts
+    </a>
+    <a class="nav-item" href="organizations.html">
+      <span class="material-icons">business</span>Organizations
+    </a>
+    <a class="nav-item active" href="patients.html">
+      <span class="material-icons">people</span>Patients
+    </a>
+    <a class="nav-item" href="one-time-search.html">
+      <span class="material-icons">manage_search</span>One-Time Search
+    </a>
+  </nav>
+  <div class="sidebar__footer">
+    <a class="nav-item" href="#">
+      <span class="material-icons">help_outline</span>Support
+    </a>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar__left">
+      <button class="topbar__hamburger" onclick="openSidebar()" aria-label="Open menu">
+        <span class="material-icons">menu</span>
+      </button>
+      <a class="back-link" href="patients.html">
+        <span class="material-icons">chevron_left</span>All Patients
+      </a>
+      <div class="topbar-search" id="topbarSearchWrap">
+        <input type="text" placeholder="Search patient list" id="topbarSearch"
+               oninput="handleTopbarSearch()" autocomplete="off" />
+        <button class="search-icon-btn" id="topbarClearBtn"
+                onclick="clearTopbarSearch()" title="Clear search" tabindex="-1">
+          <span class="material-icons" id="topbarSearchIcon">search</span>
+        </button>
+        <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+      </div>
+    </div>
+    <div class="topbar__user-wrap">
+      <div class="topbar__user" onclick="toggleUserPopover(event)">
+        Welcome, <strong>Katy</strong>
+        <span class="material-icons">settings</span>
+      </div>
+      <div class="user-popover" id="userPopover">
+        <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
+        <button class="popover-item" onclick="window.location.href='login.html'"><span class="material-icons">logout</span>Log Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- Patient header + tabs white panel -->
+    <div class="patient-header-wrap">
+    <div class="patient-header">
+      <div class="patient-title">
+        <h1 id="patientName">—</h1>
+        <span class="material-icons flag-icon" id="patientIcon" style="display:none"></span>
+      </div>
+      <div class="patient-meta">
+        <div class="meta-item">
+          <span class="meta-label">DOB:</span>
+          <span class="meta-value" id="patientDOB">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">MRN:</span>
+          <span class="meta-value" id="patientMRN">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Assigned To:</span>
+          <select class="assigned-select" id="patientAssigned">
+            <option value="">Select User</option>
+            <option value="R. Patel">R. Patel</option>
+            <option value="J. Nakamura">J. Nakamura</option>
+            <option value="M. Torres">M. Torres</option>
+          </select>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Status:</span>
+          <span class="chip" id="patientStatus">—</span>
+        </div>
+        <button class="btn btn-outline-gray">
+          <span class="material-icons">menu</span>
+          Actions
+        </button>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="showTab('programs', this)">Programs</button>
+      <button class="tab-btn" onclick="showTab('information', this)">Information</button>
+      <button class="tab-btn" onclick="showTab('activity', this)">Activity Log</button>
+    </div>
+    </div><!-- /patient-header-wrap -->
+
+    <!-- Programs tab -->
+    <div id="tab-programs" class="tab-panel active">
+      <div class="programs-header">
+        <h2 id="programsTitle">Eligible Programs</h2>
+        <button class="btn btn-outline-gray" id="printBtn" onclick="window.print()">
+          <span class="material-icons">print</span>Print Programs
+        </button>
+      </div>
+      <div id="programsList"></div>
+    </div>
+
+    <!-- Information tab -->
+    <div id="tab-information" class="tab-panel">
+      <div class="placeholder-content">
+        <span class="material-icons">person_outline</span>
+        Patient demographic and clinical information will appear here.
+      </div>
+    </div>
+
+    <!-- Activity Log tab -->
+    <div id="tab-activity" class="tab-panel">
+      <div class="placeholder-content">
+        <span class="material-icons">history</span>
+        A chronological record of actions taken on this patient's case will appear here.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Exclude modal ─────────────────────────────────────── -->
+<div class="modal-overlay" id="excludeModalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal__title" id="modalTitle">Exclude This Patient From the Worklist</div>
+
+    <span class="modal__label">Reason for exclusion:</span>
+    <div class="modal__radios" id="exclusionReasons">
+      <label class="modal__radio-item">
+        <input type="radio" name="excludeReason" value="Did not approach patient to discuss financial assistance" onchange="onReasonChange()" />
+        Did not approach patient to discuss financial assistance
+      </label>
+      <label class="modal__radio-item">
+        <input type="radio" name="excludeReason" value="Patient declined to enroll" onchange="onReasonChange()" />
+        Patient declined to enroll
+      </label>
+      <label class="modal__radio-item">
+        <input type="radio" name="excludeReason" value="Patient does not meet program criteria" onchange="onReasonChange()" />
+        Patient does not meet program criteria
+      </label>
+    </div>
+
+    <span class="modal__label">Notes:</span>
+    <textarea class="modal__textarea" id="excludeNotes" placeholder="Optional additional notes…"></textarea>
+
+    <div class="modal__actions">
+      <button class="btn btn-modal-cancel" onclick="closeExcludeModal()">Cancel</button>
+      <button class="btn btn-modal-confirm" id="excludeConfirmBtn" disabled onclick="confirmExclude()">
+        Exclude Patient
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Full patient list (for search autocomplete) ───────── */
+  const ALL_PATIENTS = [
+    { last: 'Agbayani',   first: 'Abdul',    mrn: '8808280', programs: 5, status: 'New',      assigned: '' },
+    { last: 'Alderink',   first: 'Austin',   mrn: '9713387', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Bacon',      first: 'Amy',      mrn: '8736982', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Baldonado',  first: 'Ramiro',   mrn: '8672204', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Bernosky',   first: 'Jennie',   mrn: '5409906', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Beuerle',    first: 'Priscilla',mrn: '1632389', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Bobe',       first: 'Jonna',    mrn: '8042850', programs: 0, status: 'Enrolled', assigned: 'J. Nakamura' },
+    { last: 'Botticello', first: 'Noel',     mrn: '2516570', programs: 0, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Bowne',      first: 'Russell',  mrn: '9821085', programs: 0, status: 'Excluded', assigned: 'J. Nakamura' },
+    { last: 'Brigante',   first: 'Ahmad',    mrn: '6098469', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Brooks',     first: 'Marcus',   mrn: '7234510', programs: 1, status: 'New',      assigned: '' },
+    { last: 'Cabrera',    first: 'Diana',    mrn: '3398120', programs: 3, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Campbell',   first: 'Sandra',   mrn: '6612087', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Castillo',   first: 'Miguel',   mrn: '1120934', programs: 4, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Chen',       first: 'Li',       mrn: '9905432', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Coleman',    first: 'Robert',   mrn: '2287641', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Cortez',     first: 'Elena',    mrn: '4471892', programs: 1, status: 'Enrolled', assigned: 'J. Nakamura' },
+    { last: 'Davis',      first: 'Patricia', mrn: '7753219', programs: 0, status: 'Excluded', assigned: 'R. Patel' },
+    { last: 'Diaz',       first: 'Carlos',   mrn: '8834076', programs: 3, status: 'New',      assigned: '' },
+    { last: 'Edwards',    first: 'Betty',    mrn: '5561238', programs: 0, status: 'New',      assigned: '' },
+  ];
+
+  function buildPatientUrl(p) {
+    return `patient-detail.html?mrn=${p.mrn}&last=${encodeURIComponent(p.last)}&first=${encodeURIComponent(p.first)}&status=${encodeURIComponent(p.status)}&programs=${p.programs}&assigned=${encodeURIComponent(p.assigned)}`;
+  }
+
+  function chipClass(status) {
+    return { 'New': 'chip--new', 'Enrolled': 'chip--enrolled', 'Excluded': 'chip--excluded' }[status] || '';
+  }
+
+  function handleTopbarSearch() {
+    const q = document.getElementById('topbarSearch').value.trim().toLowerCase();
+    const dropdown = document.getElementById('autocompleteDropdown');
+    const iconEl   = document.getElementById('topbarSearchIcon');
+    const btnEl    = document.getElementById('topbarClearBtn');
+
+    iconEl.textContent = q ? 'close' : 'search';
+    btnEl.classList.toggle('has-value', !!q);
+
+    if (!q) { dropdown.classList.remove('open'); dropdown.innerHTML = ''; return; }
+
+    const matches = ALL_PATIENTS.filter(p =>
+      p.last.toLowerCase().includes(q) ||
+      p.first.toLowerCase().includes(q) ||
+      `${p.first} ${p.last}`.toLowerCase().includes(q) ||
+      p.mrn.includes(q)
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+      dropdown.innerHTML = `<div class="autocomplete-no-results">No patients found</div>`;
+    } else {
+      dropdown.innerHTML = matches.map(p => `
+        <a class="autocomplete-item" href="${buildPatientUrl(p)}">
+          <span class="material-icons">person</span>
+          <div>
+            <div class="autocomplete-item__name">${p.first} ${p.last}</div>
+            <div class="autocomplete-item__meta">
+              MRN ${p.mrn} &nbsp;·&nbsp;
+              <span class="chip ${chipClass(p.status)}">${p.status}</span>
+            </div>
+          </div>
+        </a>`).join('');
+    }
+    dropdown.classList.add('open');
+  }
+
+  function clearTopbarSearch() {
+    const input = document.getElementById('topbarSearch');
+    input.value = '';
+    document.getElementById('topbarSearchIcon').textContent = 'search';
+    document.getElementById('topbarClearBtn').classList.remove('has-value');
+    document.getElementById('autocompleteDropdown').classList.remove('open');
+    document.getElementById('autocompleteDropdown').innerHTML = '';
+    input.focus();
+  }
+
+  // Close dropdowns on outside click
+  document.addEventListener('click', function(e) {
+    if (!document.getElementById('topbarSearchWrap').contains(e.target)) {
+      document.getElementById('autocompleteDropdown').classList.remove('open');
+    }
+    const userWrap = document.querySelector('.topbar__user-wrap');
+    if (userWrap && !userWrap.contains(e.target)) {
+      document.getElementById('userPopover').classList.remove('open');
+    }
+  });
+
+  function toggleUserPopover(e) {
+    e.stopPropagation();
+    document.getElementById('userPopover').classList.toggle('open');
+  }
+
+  /* ── Patient data from URL ──────────────────────────────── */
+  const params = new URLSearchParams(window.location.search);
+  const patient = {
+    mrn:      params.get('mrn')      || '0000000',
+    last:     params.get('last')     || 'Unknown',
+    first:    params.get('first')    || 'Patient',
+    status:   params.get('status')   || 'New',
+    programs: parseInt(params.get('programs') || '0'),
+    assigned: params.get('assigned') || ''
+  };
+
+  /* ── Programs pool ──────────────────────────────────────── */
+  const PROGRAMS_POOL = [
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Novartis Oncology',
+      subtitle: 'Universal Co-Pay Program for SIGNIFOR',
+      benefit: 'Pays up to $15,000 per year',
+      benefitNote: 'but no more than your actual out-of-pocket expenses',
+      cost: '$25', costPer: '/ TREATMENT', costNote: 'out-of-pocket drug costs',
+      drugs: 'Signifor Injectable',
+      recommended: true,
+      rules: [
+        'Patient must have commercial or private insurance',
+        'Patient must be 18 years of age or older',
+        'Program valid for 12 months from date of enrollment',
+        'Household income must not exceed 500% of the Federal Poverty Level',
+        'Not valid for patients covered under Medicare, Medicaid, or other government programs'
+      ]
+    },
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Biogen Idec',
+      subtitle: '$0 Copay Program for Tysabri',
+      benefit: null, benefitNote: null,
+      cost: '$0', costPer: '/ TREATMENT', costNote: 'out-of-pocket drug costs',
+      drugs: 'Tysabri Injectable',
+      recommended: true,
+      rules: [
+        'Must be commercially insured at the time of enrollment',
+        'Cannot be enrolled in any government-funded insurance program',
+        'Annual renewal required to maintain enrollment',
+        'Valid only at participating specialty pharmacies',
+        'Patient must sign a program agreement form'
+      ]
+    },
+    {
+      category: 'FOUNDATION ASSISTANCE',
+      name: 'Cancer Care Co-Pay Foundation',
+      subtitle: 'Financial Assistance for Oncology Patients',
+      benefit: 'Grants up to $10,000 per year',
+      benefitNote: 'based on financial need and diagnosis eligibility',
+      cost: '$0', costPer: '/ GRANT', costNote: 'direct patient assistance',
+      drugs: 'Chemotherapy & supportive care drugs',
+      recommended: false,
+      rules: [
+        'Patient must have a qualifying oncology diagnosis',
+        'Must demonstrate financial need; income verification required',
+        'Grant applications reviewed within 5 business days',
+        'Funds are distributed directly to the provider or pharmacy',
+        'Available for both insured and uninsured patients'
+      ]
+    },
+    {
+      category: 'GOVERNMENT PROGRAM',
+      name: 'Medicare Extra Help',
+      subtitle: 'Low-Income Subsidy for Prescription Drug Costs',
+      benefit: 'Reduces Part D premiums, deductibles & copays',
+      benefitNote: 'eligibility based on income and total resources',
+      cost: 'Varies', costPer: '', costNote: 'based on income level',
+      drugs: 'All Medicare Part D covered drugs',
+      recommended: false,
+      rules: [
+        'Must be enrolled in Medicare Part A or Part B',
+        'Annual income below $21,870 (individual) or $29,580 (married)',
+        'Resources below $16,660 (individual) or $33,240 (married)',
+        'Apply through the Social Security Administration',
+        'Must reapply each year; eligibility is re-evaluated annually'
+      ]
+    },
+    {
+      category: 'MANUFACTURER ASSISTANCE',
+      name: 'Pfizer RxPathways',
+      subtitle: 'Co-Pay Assistance & Patient Support Program',
+      benefit: 'Up to $500 per month in co-pay savings',
+      benefitNote: 'no income requirements for co-pay card program',
+      cost: '$0', costPer: '/ MONTH', costNote: 'co-pay card assistance',
+      drugs: 'Ibrance, Xalkori, Sutent & others',
+      recommended: true,
+      rules: [
+        'Must have commercial or private insurance coverage',
+        'Not valid for patients covered by government-funded programs',
+        'Co-pay card must be presented at time of dispensing',
+        'Maximum annual benefit of $6,000 per calendar year',
+        'Eligible prescriptions must be dispensed at participating pharmacies'
+      ]
+    }
+  ];
+
+  /* ── DOB generator (deterministic from MRN) ─────────────── */
+  function getDOB(mrn) {
+    const n = parseInt(mrn) || 1000000;
+    const year  = 1938 + (n % 47);
+    const month = ((n * 7)  % 12) + 1;
+    const day   = ((n * 13) % 28) + 1;
+    return `${String(month).padStart(2,'0')}/${String(day).padStart(2,'0')}/${year}`;
+  }
+
+  /* ── Populate patient header ────────────────────────────── */
+  document.title = `Vivor – ${patient.first} ${patient.last}`;
+  document.getElementById('patientName').textContent = `${patient.first} ${patient.last}`;
+  document.getElementById('patientMRN').textContent  = patient.mrn;
+  document.getElementById('patientDOB').textContent  = getDOB(patient.mrn);
+
+  const statusEl = document.getElementById('patientStatus');
+  statusEl.textContent = patient.status;
+  statusEl.className = `chip chip--${patient.status.toLowerCase()}`;
+
+  // Status icon next to name
+  const iconEl = document.getElementById('patientIcon');
+  if (patient.status === 'New') {
+    iconEl.textContent = 'flag';
+    iconEl.className = 'material-icons flag-icon';
+    iconEl.style.display = '';
+  } else if (patient.status === 'Enrolled') {
+    iconEl.textContent = 'check_circle';
+    iconEl.className = 'material-icons enrolled-icon';
+    iconEl.style.display = '';
+  } else {
+    iconEl.style.display = 'none';
+  }
+
+  const assignedEl = document.getElementById('patientAssigned');
+  if (patient.assigned) {
+    assignedEl.value = patient.assigned;
+  }
+
+  /* ── Program card renderer ──────────────────────────────── */
+  function programCard(prog, index, isEnrolled) {
+    const badgeHTML = isEnrolled
+      ? `<span class="badge badge--enrolled"><span class="material-icons">check_circle</span>Enrolled</span>`
+      : (prog.recommended
+          ? `<span class="badge badge--recommended"><span class="material-icons">star</span>Recommended</span>`
+          : '');
+
+    const benefitHTML = prog.benefit ? `
+      <div class="program-benefit">
+        <div class="benefit-icon">
+          <span class="material-icons">attach_money</span>
+        </div>
+        <div class="benefit-text">
+          <strong>${prog.benefit}</strong>
+          ${prog.benefitNote ? `<span>${prog.benefitNote}</span>` : ''}
+        </div>
+      </div>` : '';
+
+    const costHTML = `
+      <div class="program-cost">
+        <div>
+          <span class="cost-amount">${prog.cost}</span>
+          ${prog.costPer ? `<span class="cost-per"> ${prog.costPer}</span>` : ''}
+        </div>
+        <div class="cost-note">${prog.costNote}</div>
+      </div>`;
+
+    const drugsHTML = `
+      <div class="drugs-covered">
+        <div class="drugs-covered-label">Drugs Covered:</div>
+        <div class="drugs-covered-value">${prog.drugs}</div>
+      </div>`;
+
+    const footerActionsHTML = isEnrolled
+      ? `<div class="footer-actions">
+           <button class="btn btn-outline-gray">View Enrollment Details</button>
+         </div>`
+      : `<div class="footer-actions">
+           <button class="btn btn-outline-gray">Learn More</button>
+           <button class="btn btn-primary">Apply Now</button>
+         </div>`;
+
+    const cardActionsHTML = isEnrolled
+      ? `<div class="program-card__actions">
+           <button class="action-link action-link--complete">
+             <span class="material-icons">task_alt</span>Mark Completed
+           </button>
+           <button class="action-link action-link--problem">
+             <span class="material-icons">warning_amber</span>Report Problem
+           </button>
+         </div>`
+      : `<div class="program-card__actions">
+           <button class="action-link action-link--enroll">
+             <span class="material-icons">check_circle_outline</span>Mark Enrolled
+           </button>
+           <button class="action-link action-link--exclude" onclick="openExcludeModal()">
+             <span class="material-icons">remove_circle_outline</span>Mark Ineligible
+           </button>
+           <button class="action-link action-link--problem">
+             <span class="material-icons">warning_amber</span>Report Problem
+           </button>
+         </div>`;
+
+    const rulesHTML = prog.rules.map(r => `<li>${r}</li>`).join('');
+
+    return `
+      <div class="program-card">
+        <div class="program-card__body">
+          <div class="program-card__left">
+            <div class="program-category">${prog.category}</div>
+            <div class="program-name">${prog.name}</div>
+            <div class="program-subtitle">${prog.subtitle}</div>
+            ${benefitHTML}
+          </div>
+          <div class="program-card__right">
+            ${badgeHTML}
+            ${costHTML}
+            ${drugsHTML}
+          </div>
+        </div>
+
+        <div class="detailed-rules-panel" id="rules-${index}"></div>
+
+        <div class="program-card__footer">
+          <button class="detailed-rules-toggle" id="toggle-${index}" onclick="toggleRules(${index})">
+            <span class="toggle-label">Show Detailed Rules</span>
+            <span class="material-icons">expand_more</span>
+          </button>
+          ${footerActionsHTML}
+        </div>
+
+        ${cardActionsHTML}
+      </div>`;
+  }
+
+  function toggleRules(index) {
+    const panel  = document.getElementById(`rules-${index}`);
+    const toggle = document.getElementById(`toggle-${index}`);
+    const prog   = _renderedPrograms[index];
+
+    if (!panel.classList.contains('open')) {
+      panel.innerHTML = `<ul>${prog.rules.map(r => `<li>${r}</li>`).join('')}</ul>`;
+      panel.classList.add('open');
+      toggle.classList.add('open');
+      toggle.querySelector('.toggle-label').textContent = 'Hide Detailed Rules';
+    } else {
+      panel.classList.remove('open');
+      toggle.classList.remove('open');
+      toggle.querySelector('.toggle-label').textContent = 'Show Detailed Rules';
+    }
+  }
+
+  /* ── Render programs based on status ───────────────────── */
+  let _renderedPrograms = [];
+
+  function renderPrograms() {
+    const list  = document.getElementById('programsList');
+    const title = document.getElementById('programsTitle');
+    const printBtn = document.getElementById('printBtn');
+    const mrnNum = parseInt(patient.mrn) || 0;
+
+    if (patient.status === 'Excluded') {
+      title.textContent = 'No Eligible Programs';
+      printBtn.style.display = 'none';
+      list.innerHTML = `
+        <div class="state-box state-box--excluded">
+          <span class="material-icons">remove_circle_outline</span>
+          <h3>Patient Excluded</h3>
+          <p>This patient has been marked as excluded from financial assistance programs. They do not currently meet the eligibility criteria for any available programs, or have been manually excluded by a provider.</p>
+          <button class="btn btn-outline" onclick="">
+            <span class="material-icons">refresh</span>Re-evaluate Eligibility
+          </button>
+        </div>`;
+
+    } else if (patient.status === 'Enrolled') {
+      title.textContent = 'Enrolled Program';
+      const prog = PROGRAMS_POOL[mrnNum % PROGRAMS_POOL.length];
+      _renderedPrograms = [prog];
+      list.innerHTML = programCard(prog, 0, true);
+
+    } else {
+      // New
+      if (patient.programs === 0) {
+        title.textContent = 'Eligible Programs';
+        printBtn.style.display = 'none';
+        list.innerHTML = `
+          <div class="state-box state-box--no-programs">
+            <span class="material-icons">search_off</span>
+            <h3>No Programs Found</h3>
+            <p>No eligible financial assistance programs were found for this patient at this time. This may change as new programs become available or if the patient's insurance or diagnosis information is updated.</p>
+            <button class="btn btn-outline" onclick="">
+              <span class="material-icons">refresh</span>Refresh Program Search
+            </button>
+          </div>`;
+      } else {
+        title.textContent = 'Eligible Programs';
+        const count = Math.min(patient.programs, PROGRAMS_POOL.length);
+        _renderedPrograms = [];
+        for (let i = 0; i < count; i++) {
+          _renderedPrograms.push(PROGRAMS_POOL[(mrnNum + i) % PROGRAMS_POOL.length]);
+        }
+        list.innerHTML = _renderedPrograms.map((p, i) => programCard(p, i, false)).join('');
+      }
+    }
+  }
+
+  /* ── Tab switching ──────────────────────────────────────── */
+  function showTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    if (btn) btn.classList.add('active');
+  }
+
+  /* ── Exclude modal ─────────────────────────────────────── */
+  function openExcludeModal() {
+    // Reset state
+    document.querySelectorAll('input[name="excludeReason"]').forEach(r => r.checked = false);
+    document.getElementById('excludeNotes').value = '';
+    document.getElementById('excludeConfirmBtn').disabled = true;
+    document.getElementById('excludeModalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeExcludeModal() {
+    document.getElementById('excludeModalOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('excludeModalOverlay')) closeExcludeModal();
+  }
+
+  function onReasonChange() {
+    const anyChecked = document.querySelector('input[name="excludeReason"]:checked');
+    document.getElementById('excludeConfirmBtn').disabled = !anyChecked;
+  }
+
+  function confirmExclude() {
+    closeExcludeModal();
+    // Update patient status chip and icon visually
+    const statusEl = document.getElementById('patientStatus');
+    statusEl.textContent = 'Excluded';
+    statusEl.className = 'chip chip--excluded';
+    const iconEl = document.getElementById('patientIcon');
+    iconEl.style.display = 'none';
+  }
+
+  // Close on Escape key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeExcludeModal();
+  });
+
+  /* ── Sidebar (mobile) ───────────────────────────────────── */
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('visible');
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('visible');
+  }
+
+  /* ── Init ───────────────────────────────────────────────── */
+  renderPrograms();
+</script>
+</body>
+</html>

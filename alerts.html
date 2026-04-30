@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vivor – Alerts</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+  <style>
+    :root {
+      --color-primary:      #6366A8;
+      --color-primary-dark: #4E5190;
+      --color-accent:       #4B7DC8;
+      --color-accent-hover: #3A6AB5;
+      --color-green:        #059669;
+      --color-bg:           #F4F6F9;
+      --color-surface:      #FFFFFF;
+      --color-border:       #DDE1EC;
+      --color-text:         #2D2F4A;
+      --color-text-muted:   #6B7280;
+      --color-text-light:   #9CA3AF;
+      --chip-new-bg:        #ECFDF5; --chip-new-text: #059669;
+      --chip-enrolled-bg:   #EEF4FF; --chip-enrolled-text: #4B7DC8;
+      --chip-excluded-bg:   #EBEBEB; --chip-excluded-text: #6B7280;
+      --sidebar-width: 220px;
+      --font: 'Open Sans', sans-serif;
+      --radius: 4px;
+      --shadow-card: 0 1px 4px rgba(0,0,0,.10);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--color-text);
+      background: var(--color-bg);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────── */
+    .sidebar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      background: var(--color-primary);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      position: fixed;
+      top: 0; left: 0;
+      z-index: 100;
+      transition: transform .25s ease;
+    }
+    .sidebar__logo {
+      padding: 20px 20px 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .sidebar__nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 20px;
+      color: rgba(255,255,255,.72);
+      font-size: 11px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+      cursor: pointer; text-decoration: none;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.10); color: #fff; }
+    .nav-item.active { background: var(--color-primary-dark); color: #fff; box-shadow: inset 3px 0 0 #fff; }
+    .nav-item .material-icons { font-size: 20px; opacity: .9; }
+    .sidebar__footer { padding: 12px 0; border-top: 1px solid rgba(255,255,255,.12); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 90; }
+
+    /* ── Main ─────────────────────────────────────────────── */
+    .main { margin-left: var(--sidebar-width); flex: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; min-width: 0; }
+
+    /* ── Topbar ───────────────────────────────────────────── */
+    .topbar {
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 52px; flex-shrink: 0; gap: 16px;
+    }
+    .topbar__left { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; }
+    .topbar__hamburger { display: none; background: none; border: none; cursor: pointer; padding: 4px; color: var(--color-text-muted); flex-shrink: 0; }
+    .topbar__hamburger .material-icons { font-size: 24px; }
+
+    .topbar-search { flex: 1; max-width: 380px; position: relative; }
+    .topbar-search input {
+      width: 100%; padding: 7px 34px 7px 12px;
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+      font-family: var(--font); font-size: 13px; color: var(--color-text);
+      background: var(--color-bg); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .topbar-search input::placeholder { color: var(--color-text-light); }
+    .topbar-search input:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(75,125,200,.15); background: var(--color-surface); }
+
+    .search-icon-btn {
+      position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; padding: 2px; cursor: default;
+      display: flex; align-items: center; color: var(--color-text-muted);
+      border-radius: 50%; transition: background .12s, color .12s; z-index: 2;
+    }
+    .search-icon-btn.has-value { cursor: pointer; }
+    .search-icon-btn.has-value:hover { background: var(--color-border); color: var(--color-text); }
+    .search-icon-btn .material-icons { font-size: 18px; }
+
+    .autocomplete-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      max-height: 320px; overflow-y: auto; z-index: 300;
+    }
+    .autocomplete-dropdown.open { display: block; }
+    .autocomplete-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; text-decoration: none; color: var(--color-text); font-size: 13px; transition: background .1s; border-bottom: 1px solid var(--color-border); }
+    .autocomplete-item:last-child { border-bottom: none; }
+    .autocomplete-item:hover { background: #F7F8FD; }
+    .autocomplete-item .material-icons { font-size: 18px; color: var(--color-text-muted); flex-shrink: 0; }
+    .autocomplete-item__name { font-weight: 600; line-height: 1.3; }
+    .autocomplete-item__meta { font-size: 11px; color: var(--color-text-muted); margin-top: 1px; }
+    .autocomplete-no-results { padding: 14px; text-align: center; color: var(--color-text-muted); font-size: 13px; }
+    .chip { display: inline-block; padding: 1px 7px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+    .chip--new      { background: var(--chip-new-bg);      color: var(--chip-new-text); }
+    .chip--enrolled { background: var(--chip-enrolled-bg); color: var(--chip-enrolled-text); }
+    .chip--excluded { background: var(--chip-excluded-bg); color: var(--chip-excluded-text); }
+
+    .topbar__org { font-size: 13px; color: var(--color-text-muted); }
+    .topbar__org strong { color: var(--color-text); font-weight: 600; }
+
+    .topbar__user-wrap { position: relative; flex-shrink: 0; }
+    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user strong { color: var(--color-text); font-weight: 600; }
+    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .user-popover {
+      position: absolute; top: calc(100% + 10px); right: 0;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.14);
+      min-width: 160px; z-index: 400; display: none;
+    }
+    .user-popover.open { display: block; }
+    .popover-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; padding: 10px 16px;
+      background: none; border: none; border-bottom: 1px solid var(--color-border);
+      font-family: var(--font); font-size: 13px; color: var(--color-text);
+      cursor: pointer; text-align: left; transition: background .1s;
+    }
+    .popover-item:last-child { border-bottom: none; }
+    .popover-item:hover { background: #F7F8FD; }
+    .popover-item .material-icons { font-size: 17px; color: var(--color-text-muted); }
+
+    /* ── Content ──────────────────────────────────────────── */
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+
+    h1 { font-size: 24px; font-weight: 700; color: var(--color-text); margin-bottom: 16px; }
+
+    /* ── Toolbar ──────────────────────────────────────────── */
+    .alerts-toolbar {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    /* Custom checkbox */
+    .cb-wrap { position: relative; width: 18px; height: 18px; flex-shrink: 0; }
+    .cb-wrap input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 18px; height: 18px;
+      border: 2px solid var(--color-border); border-radius: 3px;
+      background: var(--color-surface); cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .cb-wrap input[type="checkbox"]:hover { border-color: var(--color-accent); }
+    .cb-wrap input[type="checkbox"]:checked { background: var(--color-accent); border-color: var(--color-accent); }
+    .cb-wrap input[type="checkbox"]:indeterminate { background: var(--color-accent); border-color: var(--color-accent); }
+    .cb-wrap input[type="checkbox"]:checked::after,
+    .cb-wrap input[type="checkbox"]:indeterminate::after {
+      content: '';
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .cb-wrap input[type="checkbox"]:checked::after {
+      width: 10px; height: 6px;
+      border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+      transform: translate(-50%, -60%) rotate(-45deg);
+    }
+    .cb-wrap input[type="checkbox"]:indeterminate::after {
+      width: 10px; height: 2px; background: #fff;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Actions dropdown */
+    .actions-wrap { position: relative; }
+    .btn-actions {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      font-family: var(--font); font-size: 13px; font-weight: 600;
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+      background: var(--color-surface); color: var(--color-text-muted);
+      cursor: not-allowed; transition: all .15s;
+    }
+    .btn-actions.active { color: var(--color-accent); border-color: var(--color-accent); cursor: pointer; }
+    .btn-actions.active:hover { background: #EEF4FF; }
+    .btn-actions .material-icons { font-size: 17px; }
+
+    .actions-dropdown {
+      display: none; position: absolute; top: calc(100% + 4px); left: 0;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius); box-shadow: 0 6px 20px rgba(0,0,0,.12);
+      min-width: 180px; z-index: 200;
+    }
+    .actions-dropdown.open { display: block; }
+    .action-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; font-size: 13px; color: var(--color-text);
+      cursor: pointer; transition: background .1s; white-space: nowrap;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .action-item:last-child { border-bottom: none; }
+    .action-item:hover { background: #F7F8FD; }
+    .action-item .material-icons { font-size: 17px; color: var(--color-text-muted); }
+    .action-item.danger { color: #DC2626; }
+    .action-item.danger .material-icons { color: #DC2626; }
+    .action-item.danger:hover { background: #FEF2F2; }
+
+    .selection-count { font-size: 13px; color: var(--color-text-muted); }
+
+    /* ── Filter pills ─────────────────────────────────────── */
+    .filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filter-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      cursor: pointer;
+      transition: background .15s, border-color .15s, color .15s;
+      user-select: none;
+    }
+    .filter-pill:hover { border-color: var(--color-accent); color: var(--color-accent); }
+    .filter-pill.active {
+      background: var(--color-accent);
+      border-color: var(--color-accent);
+      color: #fff;
+    }
+    .filter-pill .material-icons { font-size: 15px; }
+    .filter-pill .pill-count {
+      background: rgba(0,0,0,.12);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      min-width: 22px;
+      text-align: center;
+    }
+    .filter-pill.active .pill-count { background: rgba(255,255,255,.3); }
+    .filter-pill:not(.active) .pill-count { background: var(--color-bg); color: var(--color-text-muted); }
+
+    /* ── Alert list ───────────────────────────────────────── */
+    .alerts-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    .alert-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background .12s;
+      position: relative;
+    }
+    .alert-row:last-child { border-bottom: none; }
+    .alert-row:hover { background: #F7F8FD; }
+    .alert-row.unread { background: #FAFBFF; }
+    .alert-row.unread:hover { background: #F3F5FC; }
+    .alert-row.selected { background: #EEF4FF !important; }
+
+    .alert-row__cb { flex-shrink: 0; margin-top: 2px; }
+
+    /* Type icon */
+    .alert-icon {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .alert-icon .material-icons { font-size: 18px; }
+    .alert-icon--enrollment { background: #ECFDF5; color: #059669; }
+    .alert-icon--message    { background: #EEF4FF; color: #4B7DC8; }
+    .alert-icon--assignment { background: #F3F0FF; color: #6366A8; }
+
+    /* Unread dot */
+    .unread-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--color-accent);
+      flex-shrink: 0; margin-top: 7px;
+    }
+    .unread-dot.invisible { visibility: hidden; }
+
+    .alert-row__body { flex: 1; min-width: 0; }
+    .alert-row__header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 3px; }
+    .alert-from { font-size: 13px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .alert-row.read .alert-from { font-weight: 400; color: var(--color-text-muted); }
+    .alert-time { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; flex-shrink: 0; }
+    .alert-subject { font-size: 13px; font-weight: 600; color: var(--color-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    .alert-row.read .alert-subject { font-weight: 400; }
+    .alert-preview { font-size: 12px; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Empty state ──────────────────────────────────────── */
+    .empty-state {
+      display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 32px;
+      text-align: center;
+    }
+    .empty-state.visible { display: flex; }
+    .empty-icon {
+      margin-bottom: 20px;
+      color: #ABABCC;
+    }
+    .empty-icon svg { display: block; }
+    .empty-state p { font-size: 15px; font-weight: 700; color: var(--color-text); }
+
+    /* ── Responsive ───────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-overlay.visible { display: block; }
+      .main { margin-left: 0; }
+      .topbar__hamburger { display: flex; }
+      .content { padding: 16px 12px; }
+      .topbar-search { max-width: 200px; }
+      .alert-preview { display: none; }
+    }
+    @media (max-width: 480px) { .topbar-search { display: none; } }
+  </style>
+</head>
+<body>
+
+<div class="sidebar-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ──────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__logo">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 155.62 58.3" height="32" aria-label="Vivor">
+      <style>.st0{fill:#fff}</style>
+      <g><polygon class="st0" points="50.1 57.17 39.76 57.26 39.76 18.06 50.07 18.06 50.1 57.17"/><path class="st0" d="M51.06,6.02c.33,4.29-2.44,7.17-6.15,7.21-3.97.04-6.34-2.86-6.2-7,.12-3.47,2.49-6.03,5.76-6.22s6.28,2.07,6.59,6.01Z"/></g>
+      <g><path class="st0" d="M155.62,28.61c-2.99.05-5.62.15-7.84,1.97-1.66,1.36-3.04,4.24-3.06,6.88l-.17,19.75h-10.91s0-39.14,0-39.14l9.6-.07.47,6.52c2.53-4.76,6.47-7.74,11.9-6.5v10.59Z"/><path class="st0" d="M107.9,58.21c-10.28-.52-17.58-8.56-18.42-18.22-.52-5.95,1.12-12.63,5.54-17.08,7.04-7.08,19.33-7.92,27.08-1.07,9.38,8.3,9.26,23.17.33,31.54-3.93,3.69-9.01,5.11-14.53,4.83ZM108.68,47.67c3.29.13,6.08-.77,8.01-3.63,2.56-3.81,2.65-9.91-.71-13.61-3.56-3.91-10.46-3.71-13.85.24-1.96,2.28-2.5,5.92-2.18,8.55.59,4.93,3.74,8.24,8.73,8.44Z"/></g>
+      <g><path class="st0" d="M89.75,18.12l-10.24,32.98c-.93,3-2.91,5.9-5.92,6.83-4.53,1.39-8.96-1.32-10.28-5.82l-9.99-34.01,11.52-.07,6.66,25.14,6.53-25.07h11.72Z"/><path class="st0" d="M18.41,58.27c-8.01.48-8.77-7.73-10.83-14.16l4.01-.54-2.99-9.76c-1.27-.27-2.49-.43-4.2-.6L0,18.14c4.28-.13,7.62-.14,11.57-.02l6.51,25.04,6.62-25.15,11.65.07-10.61,34.22c-1.12,3.62-4.1,5.77-7.33,5.96Z"/></g>
+    </svg>
+  </div>
+  <nav class="sidebar__nav">
+    <a class="nav-item active" href="alerts.html">
+      <span class="material-icons">notifications</span>Alerts
+    </a>
+    <a class="nav-item" href="organizations.html">
+      <span class="material-icons">business</span>Organizations
+    </a>
+    <a class="nav-item" href="patients.html">
+      <span class="material-icons">people</span>Patients
+    </a>
+    <a class="nav-item" href="one-time-search.html">
+      <span class="material-icons">manage_search</span>One-Time Search
+    </a>
+  </nav>
+  <div class="sidebar__footer">
+    <a class="nav-item" href="#"><span class="material-icons">help_outline</span>Support</a>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<div class="main">
+
+  <header class="topbar">
+    <div class="topbar__left">
+      <button class="topbar__hamburger" onclick="openSidebar()" aria-label="Open menu">
+        <span class="material-icons">menu</span>
+      </button>
+      <div class="topbar__org"><strong>Northside Regional Cancer Center</strong></div>
+    </div>
+    <div class="topbar__user-wrap">
+      <div class="topbar__user" onclick="toggleUserPopover(event)">
+        Welcome, <strong>Katy</strong>
+        <span class="material-icons">settings</span>
+      </div>
+      <div class="user-popover" id="userPopover">
+        <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
+        <button class="popover-item" onclick="window.location.href='login.html'"><span class="material-icons">logout</span>Log Out</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <h1>Alerts</h1>
+
+    <!-- Filter pills -->
+    <div class="filter-pills">
+      <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">
+        <span class="material-icons">inbox</span>
+        All
+        <span class="pill-count" id="count-all"></span>
+      </button>
+      <button class="filter-pill" data-filter="enrollment" onclick="setFilter('enrollment')">
+        <span class="material-icons">assignment_turned_in</span>
+        Program Updates
+        <span class="pill-count" id="count-enrollment"></span>
+      </button>
+      <button class="filter-pill" data-filter="message" onclick="setFilter('message')">
+        <span class="material-icons">mail</span>
+        Patient Messages
+        <span class="pill-count" id="count-message"></span>
+      </button>
+      <button class="filter-pill" data-filter="assignment" onclick="setFilter('assignment')">
+        <span class="material-icons">person_add</span>
+        Assignments
+        <span class="pill-count" id="count-assignment"></span>
+      </button>
+      <div style="width:1px;height:24px;background:var(--color-border);margin:0 4px;flex-shrink:0;"></div>
+      <button class="filter-pill" data-filter="archived" onclick="setFilter('archived')">
+        <span class="material-icons">archive</span>
+        Archived
+        <span class="pill-count" id="count-archived"></span>
+      </button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="alerts-toolbar">
+      <div class="cb-wrap">
+        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select all" />
+      </div>
+      <div class="actions-wrap">
+        <button class="btn-actions" id="actionsBtn" onclick="toggleActionsDropdown()" disabled>
+          <span class="material-icons">menu</span>Actions
+        </button>
+        <div class="actions-dropdown" id="actionsDropdown">
+          <div class="action-item" id="actionRead" onclick="bulkAction('read')">
+            <span class="material-icons">drafts</span>Mark as Read
+          </div>
+          <div class="action-item" id="actionUnread" onclick="bulkAction('unread')">
+            <span class="material-icons">mark_email_unread</span>Mark as Unread
+          </div>
+          <div class="action-item" id="actionArchiveToggle" onclick="bulkAction('archiveToggle')">
+            <span class="material-icons" id="archiveToggleIcon">archive</span>
+            <span id="archiveToggleLabel">Archive</span>
+          </div>
+          <div class="action-item" onclick="bulkAction('forward')">
+            <span class="material-icons">forward_to_inbox</span>Forward
+          </div>
+          <div class="action-item danger" onclick="bulkAction('delete')">
+            <span class="material-icons">delete_outline</span>Delete
+          </div>
+        </div>
+      </div>
+      <span class="selection-count" id="selectionCount"></span>
+    </div>
+
+    <!-- Alerts card -->
+    <div class="alerts-card" id="alertsCard">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <!-- Open envelope SVG matching the screenshot style -->
+          <svg width="110" height="95" viewBox="0 0 110 95" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="28" width="98" height="61" rx="6" stroke="#ABABCC" stroke-width="4" fill="none"/>
+            <path d="M6 34 L55 62 L104 34" stroke="#ABABCC" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 28 L40 8 L70 8 L104 28" stroke="#ABABCC" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M40 8 Q55 24 70 8" stroke="#ABABCC" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <p>You have no alerts at this time.</p>
+      </div>
+      <div id="alertsList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── Alert data ─────────────────────────────────────────── */
+  let alerts = [
+    {
+      id: 1, type: 'enrollment', read: false, archived: false,
+      from: 'Novartis Oncology',
+      subject: 'Application Approved – Abdul Agbayani',
+      preview: 'Abdul Agbayani\'s application for the Universal Co-Pay Program has been approved. Confirm pharmacy enrollment to complete.',
+      time: '9:42 AM'
+    },
+    {
+      id: 2, type: 'message', read: false, archived: false,
+      from: 'Amy Bacon',
+      subject: 'Question about my Biogen Idec program',
+      preview: 'Hi, I received a letter saying my application was incomplete. Could you let me know what documents I still need to submit?',
+      time: '8:15 AM'
+    },
+    {
+      id: 3, type: 'assignment', read: false, archived: false,
+      from: 'Vivor',
+      subject: 'New patient assigned: Marcus Brooks',
+      preview: 'Marcus Brooks (MRN 7234510) has been added to your worklist by R. Patel. He has 1 eligible program pending review.',
+      time: 'Yesterday'
+    },
+    {
+      id: 4, type: 'enrollment', read: true, archived: false,
+      from: 'Cancer Care Co-Pay Foundation',
+      subject: 'Grant Application Pending Review – Jennie Bernosky',
+      preview: 'Jennie Bernosky\'s grant application is currently under review. Expected decision within 5 business days.',
+      time: 'Yesterday'
+    },
+    {
+      id: 5, type: 'message', read: true, archived: false,
+      from: 'Noel Botticello',
+      subject: 'Re: Pfizer RxPathways enrollment confirmation',
+      preview: 'Thank you for your help with the enrollment process. I received my co-pay card in the mail today.',
+      time: 'Apr 27'
+    },
+    {
+      id: 6, type: 'assignment', read: true, archived: false,
+      from: 'Vivor',
+      subject: '3 new patients assigned to your worklist',
+      preview: 'Diana Cabrera, Miguel Castillo, and Elena Cortez have been assigned to you by R. Patel.',
+      time: 'Apr 27'
+    },
+    {
+      id: 7, type: 'enrollment', read: true, archived: false,
+      from: 'Medicare Extra Help',
+      subject: 'Eligibility Update – Ramiro Baldonado',
+      preview: 'Ramiro Baldonado may now qualify for the Low-Income Subsidy based on updated income information. Review recommended.',
+      time: 'Apr 26'
+    },
+    {
+      id: 8, type: 'message', read: true, archived: false,
+      from: 'Priscilla Beuerle',
+      subject: 'Enrollment paperwork received',
+      preview: 'Just wanted to confirm you received the forms I faxed over on Friday. Please let me know if anything is missing.',
+      time: 'Apr 25'
+    },
+  ];
+
+  const TYPE_META = {
+    enrollment: { icon: 'assignment_turned_in', cls: 'alert-icon--enrollment' },
+    message:    { icon: 'mail',                 cls: 'alert-icon--message'    },
+    assignment: { icon: 'person_add',           cls: 'alert-icon--assignment' },
+  };
+
+  let activeFilter = 'all';
+
+  /* ── Filter ─────────────────────────────────────────────── */
+  function setFilter(filter) {
+    activeFilter = filter;
+    document.querySelectorAll('.filter-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.filter === filter);
+    });
+    // Update archive toggle label based on active filter
+    const isArchived = filter === 'archived';
+    document.getElementById('archiveToggleIcon').textContent = isArchived ? 'unarchive' : 'archive';
+    document.getElementById('archiveToggleLabel').textContent = isArchived ? 'Unarchive' : 'Archive';
+    // Uncheck all rows when switching filters
+    alerts.forEach(a => {
+      const cb = document.getElementById(`cb-${a.id}`);
+      if (cb) cb.checked = false;
+    });
+    render();
+  }
+
+  function visibleAlerts() {
+    if (activeFilter === 'archived') return alerts.filter(a => a.archived);
+    if (activeFilter === 'all')      return alerts.filter(a => !a.archived);
+    return alerts.filter(a => a.type === activeFilter && !a.archived);
+  }
+
+  function updateCounts() {
+    const active   = alerts.filter(a => !a.archived);
+    const archived = alerts.filter(a =>  a.archived);
+    document.getElementById('count-all').textContent        = active.length;
+    document.getElementById('count-enrollment').textContent = active.filter(a => a.type === 'enrollment').length;
+    document.getElementById('count-message').textContent    = active.filter(a => a.type === 'message').length;
+    document.getElementById('count-assignment').textContent = active.filter(a => a.type === 'assignment').length;
+    document.getElementById('count-archived').textContent   = archived.length;
+  }
+
+  /* ── Render ─────────────────────────────────────────────── */
+  function render() {
+    const list = document.getElementById('alertsList');
+    const empty = document.getElementById('emptyState');
+    const shown = visibleAlerts();
+
+    updateCounts();
+
+    if (shown.length === 0) {
+      list.innerHTML = '';
+      empty.classList.add('visible');
+    } else {
+      empty.classList.remove('visible');
+      list.innerHTML = shown.map(a => {
+        const meta = TYPE_META[a.type];
+        const readCls = a.read ? 'read' : 'unread';
+        return `
+          <div class="alert-row ${readCls}" id="row-${a.id}" onclick="handleRowClick(event, ${a.id})">
+            <div class="alert-row__cb cb-wrap" onclick="event.stopPropagation()">
+              <input type="checkbox" id="cb-${a.id}" onchange="onRowCheck(${a.id})" />
+            </div>
+            <div class="alert-icon ${meta.cls}">
+              <span class="material-icons">${meta.icon}</span>
+            </div>
+            <div class="alert-row__body">
+              <div class="alert-row__header">
+                <span class="alert-from">${a.from}</span>
+                <span class="alert-time">${a.time}</span>
+              </div>
+              <div class="alert-subject">${a.subject}</div>
+              <div class="alert-preview">${a.preview}</div>
+            </div>
+            <div class="unread-dot ${a.read ? 'invisible' : ''}"></div>
+          </div>`;
+      }).join('');
+    }
+
+    syncToolbar();
+  }
+
+  /* ── Row interaction ────────────────────────────────────── */
+  function handleRowClick(e, id) {
+    const alert = alerts.find(a => a.id === id);
+    if (alert) {
+      alert.read = true;
+      render();
+    }
+  }
+
+  /* ── Selection ──────────────────────────────────────────── */
+  function getCheckedIds() {
+    return visibleAlerts()
+      .filter(a => document.getElementById(`cb-${a.id}`)?.checked)
+      .map(a => a.id);
+  }
+
+  function onRowCheck(id) {
+    syncToolbar();
+  }
+
+  function toggleSelectAll() {
+    const master = document.getElementById('selectAll');
+    alerts.forEach(a => {
+      const cb = document.getElementById(`cb-${a.id}`);
+      if (cb) cb.checked = master.checked;
+    });
+    syncToolbar();
+  }
+
+  function syncToolbar() {
+    const ids = getCheckedIds();
+    const count = ids.length;
+    const total = visibleAlerts().length;
+    const master = document.getElementById('selectAll');
+    const btn = document.getElementById('actionsBtn');
+    const countEl = document.getElementById('selectionCount');
+
+    if (count === 0) {
+      master.checked = false;
+      master.indeterminate = false;
+    } else if (count === total) {
+      master.checked = true;
+      master.indeterminate = false;
+    } else {
+      master.checked = false;
+      master.indeterminate = true;
+    }
+
+    if (count > 0) {
+      btn.disabled = false;
+      btn.classList.add('active');
+      countEl.textContent = `${count} selected`;
+    } else {
+      btn.disabled = true;
+      btn.classList.remove('active');
+      countEl.textContent = '';
+      document.getElementById('actionsDropdown').classList.remove('open');
+    }
+  }
+
+  /* ── Actions dropdown ───────────────────────────────────── */
+  function toggleActionsDropdown() {
+    const dd = document.getElementById('actionsDropdown');
+    dd.classList.toggle('open');
+  }
+
+  document.addEventListener('click', e => {
+    const wrap = document.querySelector('.actions-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('actionsDropdown').classList.remove('open');
+    }
+    const userWrap = document.querySelector('.topbar__user-wrap');
+    if (userWrap && !userWrap.contains(e.target)) {
+      document.getElementById('userPopover').classList.remove('open');
+    }
+  });
+
+  function toggleUserPopover(e) {
+    e.stopPropagation();
+    document.getElementById('userPopover').classList.toggle('open');
+  }
+
+  function bulkAction(action) {
+    const ids = getCheckedIds();
+    document.getElementById('actionsDropdown').classList.remove('open');
+
+    if (action === 'delete') {
+      alerts = alerts.filter(a => !ids.includes(a.id));
+    } else if (action === 'archiveToggle') {
+      const shouldArchive = activeFilter !== 'archived';
+      ids.forEach(id => { const a = alerts.find(x => x.id === id); if (a) a.archived = shouldArchive; });
+    } else if (action === 'read') {
+      ids.forEach(id => { const a = alerts.find(x => x.id === id); if (a) a.read = true; });
+    } else if (action === 'unread') {
+      ids.forEach(id => { const a = alerts.find(x => x.id === id); if (a) a.read = false; });
+    } else if (action === 'forward') {
+      // No-op in prototype
+    }
+    render();
+  }
+
+  /* ── Global patient search ──────────────────────────────── */
+  const ALL_PATIENTS = [
+    { last: 'Agbayani',   first: 'Abdul',    mrn: '8808280', programs: 5, status: 'New',      assigned: '' },
+    { last: 'Alderink',   first: 'Austin',   mrn: '9713387', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Bacon',      first: 'Amy',      mrn: '8736982', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Baldonado',  first: 'Ramiro',   mrn: '8672204', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Bernosky',   first: 'Jennie',   mrn: '5409906', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Beuerle',    first: 'Priscilla',mrn: '1632389', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Bobe',       first: 'Jonna',    mrn: '8042850', programs: 0, status: 'Enrolled', assigned: 'J. Nakamura' },
+    { last: 'Botticello', first: 'Noel',     mrn: '2516570', programs: 0, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Bowne',      first: 'Russell',  mrn: '9821085', programs: 0, status: 'Excluded', assigned: 'J. Nakamura' },
+    { last: 'Brigante',   first: 'Ahmad',    mrn: '6098469', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Brooks',     first: 'Marcus',   mrn: '7234510', programs: 1, status: 'New',      assigned: '' },
+    { last: 'Cabrera',    first: 'Diana',    mrn: '3398120', programs: 3, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Campbell',   first: 'Sandra',   mrn: '6612087', programs: 0, status: 'Excluded', assigned: 'M. Torres' },
+    { last: 'Castillo',   first: 'Miguel',   mrn: '1120934', programs: 4, status: 'Enrolled', assigned: 'R. Patel' },
+    { last: 'Chen',       first: 'Li',       mrn: '9905432', programs: 2, status: 'New',      assigned: '' },
+    { last: 'Coleman',    first: 'Robert',   mrn: '2287641', programs: 0, status: 'New',      assigned: '' },
+    { last: 'Cortez',     first: 'Elena',    mrn: '4471892', programs: 1, status: 'Enrolled', assigned: 'J. Nakamura' },
+    { last: 'Davis',      first: 'Patricia', mrn: '7753219', programs: 0, status: 'Excluded', assigned: 'R. Patel' },
+    { last: 'Diaz',       first: 'Carlos',   mrn: '8834076', programs: 3, status: 'New',      assigned: '' },
+    { last: 'Edwards',    first: 'Betty',    mrn: '5561238', programs: 0, status: 'New',      assigned: '' },
+  ];
+
+  function buildPatientUrl(p) {
+    return `patient-detail.html?mrn=${p.mrn}&last=${encodeURIComponent(p.last)}&first=${encodeURIComponent(p.first)}&status=${encodeURIComponent(p.status)}&programs=${p.programs}&assigned=${encodeURIComponent(p.assigned)}`;
+  }
+
+  function handleTopbarSearch() {
+    const q = document.getElementById('topbarSearch').value.trim().toLowerCase();
+    const dd = document.getElementById('autocompleteDropdown');
+    const icon = document.getElementById('topbarSearchIcon');
+    const btn  = document.getElementById('topbarClearBtn');
+    icon.textContent = q ? 'close' : 'search';
+    btn.classList.toggle('has-value', !!q);
+    if (!q) { dd.classList.remove('open'); dd.innerHTML = ''; return; }
+    const matches = ALL_PATIENTS.filter(p =>
+      p.last.toLowerCase().includes(q) || p.first.toLowerCase().includes(q) ||
+      `${p.first} ${p.last}`.toLowerCase().includes(q) || p.mrn.includes(q)
+    ).slice(0, 8);
+    const chipCls = s => ({ New:'chip--new', Enrolled:'chip--enrolled', Excluded:'chip--excluded' }[s]||'');
+    dd.innerHTML = matches.length === 0
+      ? `<div class="autocomplete-no-results">No patients found</div>`
+      : matches.map(p => `
+          <a class="autocomplete-item" href="${buildPatientUrl(p)}">
+            <span class="material-icons">person</span>
+            <div>
+              <div class="autocomplete-item__name">${p.first} ${p.last}</div>
+              <div class="autocomplete-item__meta">MRN ${p.mrn} &nbsp;·&nbsp;<span class="chip ${chipCls(p.status)}">${p.status}</span></div>
+            </div>
+          </a>`).join('');
+    dd.classList.add('open');
+  }
+
+  function clearTopbarSearch() {
+    const input = document.getElementById('topbarSearch');
+    input.value = '';
+    document.getElementById('topbarSearchIcon').textContent = 'search';
+    document.getElementById('topbarClearBtn').classList.remove('has-value');
+    const dd = document.getElementById('autocompleteDropdown');
+    dd.classList.remove('open'); dd.innerHTML = '';
+    input.focus();
+  }
+
+  /* ── Sidebar (mobile) ───────────────────────────────────── */
+  function openSidebar()  { document.getElementById('sidebar').classList.add('open');    document.getElementById('overlay').classList.add('visible'); }
+  function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('visible'); }
+
+  /* ── Init ───────────────────────────────────────────────── */
+  render();
+</script>
+</body>
+</html>
