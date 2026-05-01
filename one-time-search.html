@@ -90,9 +90,15 @@
     .topbar__org { font-size: 13px; color: var(--color-text-muted); }
     .topbar__org strong { color: var(--color-text); font-weight: 600; }
     .topbar__user-wrap { position: relative; flex-shrink: 0; }
-    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
     .topbar__user strong { color: var(--color-text); font-weight: 600; }
-    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--color-accent); color: #fff;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
     .user-popover {
       position: absolute; top: calc(100% + 10px); right: 0;
       background: var(--color-surface); border: 1px solid var(--color-border);
@@ -153,6 +159,7 @@
     }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group--full { grid-column: 1 / -1; }
+    .form-group--span2 { grid-column: span 2; }
 
     .form-label {
       font-size: 11px;
@@ -422,16 +429,25 @@
       .form-grid { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 768px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .main { height: auto; overflow: visible; }
+      .content { overflow: visible; height: auto; }
+      .topbar { position: sticky; top: 0; z-index: 50; }
       .sidebar { transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); }
       .sidebar-overlay.visible { display: block; }
       .main { margin-left: 0; }
       .topbar__hamburger { display: flex; }
       .content { padding: 16px 12px; }
-      .form-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; gap: 14px 0; }
+      .form-section-label,
+      .form-group--span2,
+      .form-group--full { grid-column: 1 / -1; }
       .program-card__body { flex-direction: column; }
       .program-card__right { align-items: flex-start; min-width: 0; }
       .drugs-covered, .program-cost { text-align: left; }
+      .topbar__welcome { display: none; }
+      .topbar__org { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100vw - 150px); }
     }
   </style>
 </head>
@@ -480,8 +496,8 @@
     </div>
     <div class="topbar__user-wrap">
       <div class="topbar__user" onclick="toggleUserPopover(event)">
-        Welcome, <strong>Katy</strong>
-        <span class="material-icons">settings</span>
+        <span class="topbar__welcome">Welcome, <strong>Katy</strong></span>
+        <div class="profile-avatar">K</div>
       </div>
       <div class="user-popover" id="userPopover">
         <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
@@ -575,7 +591,7 @@
           </div>
 
           <!-- Medications -->
-          <div class="form-group" style="grid-column: span 2">
+          <div class="form-group form-group--span2">
             <label class="form-label">Medications</label>
             <div class="tags-wrap" id="tagsWrap" onclick="document.getElementById('medInput').focus()">
               <input class="tags-input" id="medInput" type="text"

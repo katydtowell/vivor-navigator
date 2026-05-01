@@ -133,9 +133,15 @@
     .topbar__org strong { color: var(--color-text); font-weight: 600; }
 
     .topbar__user-wrap { position: relative; flex-shrink: 0; }
-    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
     .topbar__user strong { color: var(--color-text); font-weight: 600; }
-    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--color-accent); color: #fff;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
     .user-popover {
       position: absolute; top: calc(100% + 10px); right: 0;
       background: var(--color-surface); border: 1px solid var(--color-border);
@@ -273,6 +279,12 @@
     .filter-pill.active .pill-count { background: rgba(255,255,255,.3); }
     .filter-pill:not(.active) .pill-count { background: var(--color-bg); color: var(--color-text-muted); }
 
+    /* ── Filters + toolbar wrapper ───────────────────────── */
+    .filters-toolbar-wrap { display: flex; flex-direction: column; }
+
+    /* ── Mobile filter toggle bar ─────────────────────────── */
+    .filter-mobile-bar { display: none; }
+
     /* ── Alert list ───────────────────────────────────────── */
     .alerts-card {
       background: var(--color-surface);
@@ -343,6 +355,10 @@
 
     /* ── Responsive ───────────────────────────────────────── */
     @media (max-width: 768px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .main { height: auto; overflow: visible; }
+      .content { overflow: visible; height: auto; }
+      .topbar { position: sticky; top: 0; z-index: 50; }
       .sidebar { transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); }
       .sidebar-overlay.visible { display: block; }
@@ -351,6 +367,29 @@
       .content { padding: 16px 12px; }
       .topbar-search { max-width: 200px; }
       .alert-preview { display: none; }
+      .topbar__welcome { display: none; }
+      .topbar__org { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100vw - 150px); }
+      .filters-toolbar-wrap .filter-pills { order: 2; }
+      .filters-toolbar-wrap .alerts-toolbar { order: 1; }
+      .filter-mobile-bar {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--color-accent);
+        background: var(--color-accent);
+        color: #fff;
+        font-family: var(--font);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: auto;
+        flex-shrink: 0;
+      }
+      .filter-mobile-bar .material-icons { font-size: 15px; }
+      .filter-pills { display: none; margin-bottom: 10px; }
+      .filter-pills.mobile-open { display: flex; }
     }
     @media (max-width: 480px) { .topbar-search { display: none; } }
   </style>
@@ -400,8 +439,8 @@
     </div>
     <div class="topbar__user-wrap">
       <div class="topbar__user" onclick="toggleUserPopover(event)">
-        Welcome, <strong>Katy</strong>
-        <span class="material-icons">settings</span>
+        <span class="topbar__welcome">Welcome, <strong>Katy</strong></span>
+        <div class="profile-avatar">K</div>
       </div>
       <div class="user-popover" id="userPopover">
         <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
@@ -413,65 +452,72 @@
   <div class="content">
     <h1>Alerts</h1>
 
-    <!-- Filter pills -->
-    <div class="filter-pills">
-      <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">
-        <span class="material-icons">inbox</span>
-        All
-        <span class="pill-count" id="count-all"></span>
-      </button>
-      <button class="filter-pill" data-filter="enrollment" onclick="setFilter('enrollment')">
-        <span class="material-icons">assignment_turned_in</span>
-        Program Updates
-        <span class="pill-count" id="count-enrollment"></span>
-      </button>
-      <button class="filter-pill" data-filter="message" onclick="setFilter('message')">
-        <span class="material-icons">mail</span>
-        Patient Messages
-        <span class="pill-count" id="count-message"></span>
-      </button>
-      <button class="filter-pill" data-filter="assignment" onclick="setFilter('assignment')">
-        <span class="material-icons">person_add</span>
-        Assignments
-        <span class="pill-count" id="count-assignment"></span>
-      </button>
-      <div style="width:1px;height:24px;background:var(--color-border);margin:0 4px;flex-shrink:0;"></div>
-      <button class="filter-pill" data-filter="archived" onclick="setFilter('archived')">
-        <span class="material-icons">archive</span>
-        Archived
-        <span class="pill-count" id="count-archived"></span>
-      </button>
-    </div>
-
-    <!-- Toolbar -->
-    <div class="alerts-toolbar">
-      <div class="cb-wrap">
-        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select all" />
-      </div>
-      <div class="actions-wrap">
-        <button class="btn-actions" id="actionsBtn" onclick="toggleActionsDropdown()" disabled>
-          <span class="material-icons">menu</span>Actions
+    <div class="filters-toolbar-wrap">
+      <!-- Filter pills -->
+      <div class="filter-pills" id="filterPills">
+        <button class="filter-pill active" data-filter="all" onclick="setFilter('all')">
+          <span class="material-icons">inbox</span>
+          All
+          <span class="pill-count" id="count-all"></span>
         </button>
-        <div class="actions-dropdown" id="actionsDropdown">
-          <div class="action-item" id="actionRead" onclick="bulkAction('read')">
-            <span class="material-icons">drafts</span>Mark as Read
-          </div>
-          <div class="action-item" id="actionUnread" onclick="bulkAction('unread')">
-            <span class="material-icons">mark_email_unread</span>Mark as Unread
-          </div>
-          <div class="action-item" id="actionArchiveToggle" onclick="bulkAction('archiveToggle')">
-            <span class="material-icons" id="archiveToggleIcon">archive</span>
-            <span id="archiveToggleLabel">Archive</span>
-          </div>
-          <div class="action-item" onclick="bulkAction('forward')">
-            <span class="material-icons">forward_to_inbox</span>Forward
-          </div>
-          <div class="action-item danger" onclick="bulkAction('delete')">
-            <span class="material-icons">delete_outline</span>Delete
+        <button class="filter-pill" data-filter="enrollment" onclick="setFilter('enrollment')">
+          <span class="material-icons">assignment_turned_in</span>
+          Program Updates
+          <span class="pill-count" id="count-enrollment"></span>
+        </button>
+        <button class="filter-pill" data-filter="message" onclick="setFilter('message')">
+          <span class="material-icons">mail</span>
+          Patient Messages
+          <span class="pill-count" id="count-message"></span>
+        </button>
+        <button class="filter-pill" data-filter="assignment" onclick="setFilter('assignment')">
+          <span class="material-icons">person_add</span>
+          Assignments
+          <span class="pill-count" id="count-assignment"></span>
+        </button>
+        <div style="width:1px;height:24px;background:var(--color-border);margin:0 4px;flex-shrink:0;"></div>
+        <button class="filter-pill" data-filter="archived" onclick="setFilter('archived')">
+          <span class="material-icons">archive</span>
+          Archived
+          <span class="pill-count" id="count-archived"></span>
+        </button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="alerts-toolbar">
+        <div class="cb-wrap">
+          <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select all" />
+        </div>
+        <div class="actions-wrap">
+          <button class="btn-actions" id="actionsBtn" onclick="toggleActionsDropdown()" disabled>
+            <span class="material-icons">menu</span>Actions
+          </button>
+          <div class="actions-dropdown" id="actionsDropdown">
+            <div class="action-item" id="actionRead" onclick="bulkAction('read')">
+              <span class="material-icons">drafts</span>Mark as Read
+            </div>
+            <div class="action-item" id="actionUnread" onclick="bulkAction('unread')">
+              <span class="material-icons">mark_email_unread</span>Mark as Unread
+            </div>
+            <div class="action-item" id="actionArchiveToggle" onclick="bulkAction('archiveToggle')">
+              <span class="material-icons" id="archiveToggleIcon">archive</span>
+              <span id="archiveToggleLabel">Archive</span>
+            </div>
+            <div class="action-item" onclick="bulkAction('forward')">
+              <span class="material-icons">forward_to_inbox</span>Forward
+            </div>
+            <div class="action-item danger" onclick="bulkAction('delete')">
+              <span class="material-icons">delete_outline</span>Delete
+            </div>
           </div>
         </div>
+        <span class="selection-count" id="selectionCount"></span>
+        <!-- Mobile filter toggle (hidden on desktop) -->
+        <button class="filter-mobile-bar" id="filterMobileBar" onclick="toggleMobileFilters()">
+          <span class="material-icons" id="filterMobileIcon">filter_list</span>
+          Showing: <strong id="filterMobileLabel">All</strong>
+        </button>
       </div>
-      <span class="selection-count" id="selectionCount"></span>
     </div>
 
     <!-- Alerts card -->
@@ -562,6 +608,22 @@
 
   let activeFilter = 'all';
 
+  const FILTER_LABELS = {
+    all:        'All',
+    enrollment: 'Program Updates',
+    message:    'Patient Messages',
+    assignment: 'Assignments',
+    archived:   'Archived'
+  };
+
+  /* ── Mobile filter toggle ───────────────────────────────── */
+  function toggleMobileFilters() {
+    const pills = document.getElementById('filterPills');
+    const icon  = document.getElementById('filterMobileIcon');
+    const isOpen = pills.classList.toggle('mobile-open');
+    icon.textContent = isOpen ? 'close' : 'filter_list';
+  }
+
   /* ── Filter ─────────────────────────────────────────────── */
   function setFilter(filter) {
     activeFilter = filter;
@@ -577,6 +639,12 @@
       const cb = document.getElementById(`cb-${a.id}`);
       if (cb) cb.checked = false;
     });
+    // Update mobile bar label and collapse pills
+    document.getElementById('filterMobileLabel').textContent = FILTER_LABELS[filter] || filter;
+    if (window.innerWidth <= 768) {
+      document.getElementById('filterPills').classList.remove('mobile-open');
+      document.getElementById('filterMobileIcon').textContent = 'filter_list';
+    }
     render();
   }
 

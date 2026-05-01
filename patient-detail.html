@@ -253,9 +253,15 @@
     }
 
     .topbar__user-wrap { position: relative; flex-shrink: 0; }
-    .topbar__user { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
+    .topbar__user { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); white-space: nowrap; cursor: pointer; user-select: none; }
     .topbar__user strong { color: var(--color-text); font-weight: 600; }
-    .topbar__user .material-icons { font-size: 18px; color: var(--color-accent); }
+    .profile-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--color-accent); color: #fff;
+      font-size: 12px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
     .user-popover {
       position: absolute; top: calc(100% + 10px); right: 0;
       background: var(--color-surface); border: 1px solid var(--color-border);
@@ -861,18 +867,47 @@
 
     /* ── Responsive ───────────────────────────────────────── */
     @media (max-width: 768px) {
+      body { height: auto; min-height: 100vh; overflow: auto; }
+      .main { height: auto; overflow: visible; }
+      .content { overflow: visible; height: auto; }
+      .topbar { position: sticky; top: 0; z-index: 50; }
       .sidebar { transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); }
       .sidebar-overlay.visible { display: block; }
       .main { margin-left: 0; }
       .topbar__hamburger { display: flex; }
       .content { padding: 16px 14px; }
-      .program-card__body { flex-direction: column; }
+      .program-card__body { flex-direction: column; position: relative; }
       .program-card__right { align-items: flex-start; min-width: 0; }
+      .program-card__right .badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+      }
+      .program-card__left { padding-right: 110px; }
       .drugs-covered { text-align: left; }
       .program-cost { text-align: left; }
       .patient-meta { gap: 14px; }
       .topbar-search { max-width: 180px; }
+      .topbar__welcome { display: none; }
+      .topbar__org { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(100vw - 150px); }
+      #printBtn { display: none; }
+      .program-card__actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0;
+        padding: 10px 16px 14px;
+      }
+      .program-card__actions .action-link--enroll,
+      .program-card__actions .action-link--exclude {
+        margin-right: 20px;
+        padding-bottom: 10px;
+      }
+      .program-card__actions .action-link--problem {
+        width: 100%;
+        padding-top: 10px;
+        border-top: 1px solid var(--color-border);
+      }
     }
 
     @media (max-width: 520px) {
@@ -940,8 +975,8 @@
     </div>
     <div class="topbar__user-wrap">
       <div class="topbar__user" onclick="toggleUserPopover(event)">
-        Welcome, <strong>Katy</strong>
-        <span class="material-icons">settings</span>
+        <span class="topbar__welcome">Welcome, <strong>Katy</strong></span>
+        <div class="profile-avatar">K</div>
       </div>
       <div class="user-popover" id="userPopover">
         <button class="popover-item"><span class="material-icons">person_outline</span>Profile</button>
@@ -981,10 +1016,6 @@
           <span class="meta-label">Status:</span>
           <span class="chip" id="patientStatus">—</span>
         </div>
-        <button class="btn btn-outline-gray">
-          <span class="material-icons">menu</span>
-          Actions
-        </button>
       </div>
     </div>
 
