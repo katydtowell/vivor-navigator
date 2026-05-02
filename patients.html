@@ -525,9 +525,6 @@
     </div>
   </header>
 
-  <!-- Banner (hidden on desktop since it's embedded in topbar; visible as separate strip matching screenshot) -->
-  <div class="banner" id="banner-strip"><strong>Northside Regional Cancer Center</strong></div>
-
   <!-- Scrollable content -->
   <div class="content">
 
@@ -752,20 +749,7 @@
     document.getElementById('overlay').classList.remove('visible');
   }
 
-  /* ── Hide duplicate banner on desktop ─────────────────────── */
-  function syncBanner() {
-    const banner = document.getElementById('banner-strip');
-    // On desktop the topbar already shows the org; hide the banner strip
-    if (window.innerWidth > 480) {
-      banner.style.display = 'none';
-    } else {
-      banner.style.display = 'block';
-    }
-  }
-  window.addEventListener('resize', syncBanner);
-
   /* ── Init ─────────────────────────────────────────────────── */
-  syncBanner();
   render();
 </script>
 </body>
